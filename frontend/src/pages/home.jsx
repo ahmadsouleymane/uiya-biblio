@@ -159,7 +159,7 @@ export default function Home() {
   const catalogBooks = books.slice(0, 12);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
 
       {/* ── EVENT DETAIL MODAL ───────────────────────────── */}

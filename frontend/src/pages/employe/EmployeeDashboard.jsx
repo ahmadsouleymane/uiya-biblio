@@ -41,7 +41,7 @@ export default function EmployeeDashboard() {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
       {/* Header */}

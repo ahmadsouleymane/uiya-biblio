@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   LogOut, BookOpen, Clock, CheckCircle, AlertCircle,
-  Pencil, X, Save, Mail, Phone, GraduationCap, Hash,
+  X, Mail, Phone, GraduationCap, Hash,
   Maximize2, CreditCard, Heart, BookMarked, TrendingUp, AlertTriangle, BarChart2,
 } from "lucide-react"
 import {
@@ -10,7 +10,7 @@ import {
 } from "recharts"
 import { downloadCard } from "../utils/memberCard"
 import { useUser } from "../contexts/AuthContext"
-import { logout, updateMe, getUserStats } from "../api/user"
+import { logout, getUserStats } from "../api/user"
 import { getUserLoans } from "../api/loan"
 import { getMyReservations, cancelReservation } from "../api/reservation"
 import { getFavorites, removeFavorite } from "../api/user"
@@ -51,9 +51,6 @@ export default function Profile() {
   const navigate = useNavigate()
   const [loans, setLoans] = useState([])
   const [loadingLoans, setLoadingLoans] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [editForm, setEditForm] = useState({ fullName: "", phone: "", department: "", year: "" })
   const [activeTab, setActiveTab] = useState("emprunts")
   const [reservations, setReservations] = useState([])
   const [favorites, setFavorites] = useState([])
@@ -78,30 +75,11 @@ export default function Profile() {
     getUserStats(user._id).then(data => setStats(data)).catch(() => {})
   }, [user])
 
-  useEffect(() => {
-    if (user) setEditForm({ fullName: user.fullName, phone: user.phone || "", department: user.department || "", year: user.year || "" })
-  }, [user])
-
   const handleLogout = async () => {
     await logout()
     setUser(null)
     navigate("/")
     toast.success("Déconnecté")
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      const data = await updateMe(editForm)
-      if (data._id) { setUser(data); setEditing(false); toast.success("Profil mis à jour") }
-      else toast.error(data.message || "Erreur")
-    } catch { toast.error("Erreur serveur") }
-    finally { setSaving(false) }
-  }
-
-  const cancelEdit = () => {
-    setEditing(false)
-    setEditForm({ fullName: user.fullName, phone: user.phone || "", department: user.department || "", year: user.year || "" })
   }
 
   const handleCancelReservation = async (id) => {
@@ -154,7 +132,7 @@ export default function Profile() {
     : 0
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
       {/* ── HEADER BANNER ── */}
@@ -303,39 +281,9 @@ export default function Profile() {
             <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="flex items-center justify-between mb-4">
                 <p className="font-black text-primary text-sm">Informations</p>
-                {!editing ? (
-                  <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs font-bold" style={{ color: "var(--fg)" }}>
-                    <Pencil className="w-3 h-3" /> Modifier
-                  </button>
-                ) : (
-                  <div className="flex gap-3">
-                    <button onClick={cancelEdit} className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Annuler</button>
-                    <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 text-xs font-bold disabled:opacity-50" style={{ color: "#059669" }}>
-                      {saving ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Save className="w-3 h-3" />}
-                      Sauvegarder
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {editing ? (
-                <div className="space-y-3">
-                  {[
-                    { label: "Nom complet",  key: "fullName",   type: "text" },
-                    { label: "Téléphone",    key: "phone",      type: "tel" },
-                    { label: "Département",  key: "department", type: "text" },
-                    { label: "Année",        key: "year",       type: "text" },
-                  ].map(({ label, key, type }) => (
-                    <div key={key}>
-                      <label className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--muted)" }}>{label}</label>
-                      <input type={type} value={editForm[key]} onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
-                        className="w-full mt-1 px-3 py-2 rounded-xl border text-sm font-semibold text-primary outline-none"
-                        style={{ background: "var(--bg)", borderColor: "var(--border-md)" }} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div>
+              <div>
                   {[
                     { icon: <Mail className="w-3.5 h-3.5" />,          label: "Email",       value: user.email },
                     { icon: <Phone className="w-3.5 h-3.5" />,         label: "Téléphone",   value: user.phone },
@@ -350,8 +298,7 @@ export default function Profile() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Déconnexion */}

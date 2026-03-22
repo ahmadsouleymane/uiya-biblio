@@ -14,7 +14,7 @@ export default function Footer() {
   const navigate = useNavigate()
 
   return (
-    <footer className="pb-20 md:pb-0" style={{ background: "#040848" }}>
+    <footer className="mt-auto pb-20 md:pb-0" style={{ background: "#040848" }}>
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-5 pt-12 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">

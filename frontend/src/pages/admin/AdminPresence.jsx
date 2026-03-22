@@ -101,7 +101,7 @@ export default function AdminPresence() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">

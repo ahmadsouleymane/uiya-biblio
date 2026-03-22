@@ -172,7 +172,7 @@ export default function BookPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       <div className="h-[50vh] bg-gray-200 animate-pulse" />
       <div className="max-w-5xl mx-auto px-4 mt-4 space-y-4">
@@ -196,7 +196,7 @@ export default function BookPage() {
   const myReview = reviews.find(r => r.user?._id === user?._id)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
 
       {/* Hero */}

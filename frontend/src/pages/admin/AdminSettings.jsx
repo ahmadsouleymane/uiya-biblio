@@ -50,7 +50,7 @@ export default function AdminSettings() {
   )
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">

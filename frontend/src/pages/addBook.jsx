@@ -189,7 +189,7 @@ export default function AddBook() {
 
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Toaster position="top-right" />
       <Navbar />
 
