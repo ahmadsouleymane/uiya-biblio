@@ -22,10 +22,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#A71E3C" }}>
-                <BookOpen className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-white text-xl font-black tracking-tight">Biblio</span>
+              <span className="text-white text-xl font-black tracking-tight uppercase">Bibliothèque UIYA</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed">
               La bibliothèque numérique de votre établissement. Consultez, empruntez et gérez vos livres en toute simplicité.
@@ -33,15 +30,21 @@ export default function Footer() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white/40 text-xs">
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span>Abidjan, Côte d'Ivoire</span>
+                <a href="https://www.google.com/maps/place/Universit%C3%A9+Internationale+de+Yamoussoukro/@6.8521928,-5.2476374,1141m/data=!3m2!1e3!4b1!4m6!3m5!1s0xfb897d90ebbd2c9:0x6a38973e64b9ef19!8m2!3d6.8521875!4d-5.2450625!16s%2Fg%2F11h91lddq7?entry=ttu&g_ep=EgoyMDI2MDMxOC4xIKXMDSoASAFQAw%3D%3D" className="text-white/40 hover:text-white transition-colors">
+                  Yamoussoukro, Côte d'Ivoire
+                </a>
               </div>
               <div className="flex items-center gap-2 text-white/40 text-xs">
                 <Mail className="w-3.5 h-3.5 shrink-0" />
-                <span>bibliotheque@etablissement.ci</span>
+                <a href="mailto:valentinkiendrebeogo22@gmail.com" className="text-white/40 hover:text-white transition-colors">
+                  valentinkiendrebeogo22@gmail.com
+                </a>
               </div>
               <div className="flex items-center gap-2 text-white/40 text-xs">
                 <Phone className="w-3.5 h-3.5 shrink-0" />
-                <span>+225 07 00 00 00 00</span>
+                <a href="tel:+2250758505990" className="text-white/40 hover:text-white transition-colors">
+                  +225 07 58 50 59 90
+                </a>
               </div>
             </div>
           </div>
@@ -90,7 +93,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
         <div className="max-w-6xl mx-auto px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Tous droits réservés - Fait avec <span onClick={() => navigate("https://www.smartlib.tech/")} className="text-secondary font-bold cursor-pointer">SmartLib</span> </p>
+          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Tous droits réservés - Fait par <a className="text-secondary font-bold cursor-pointer">AHMAD</a> </p>
         </div>
       </div>
     </footer>

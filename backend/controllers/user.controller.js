@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendResetPasswordEmail } from "../utils/email.js";
+import { sendResetPasswordEmail, sendWelcomeEmail } from "../utils/email.js";
 import { parse } from "csv-parse/sync";
 
 const signAndSendToken = (res, user) => {
@@ -52,6 +52,10 @@ export const addUser = async (req, res) => {
     } catch (err) {
       console.error("Erreur QR code:", err);
     }
+
+    sendWelcomeEmail(user.email, user.fullName).catch(err =>
+      console.error("Erreur email bienvenue:", err)
+    );
 
     signAndSendToken(res, user);
 
