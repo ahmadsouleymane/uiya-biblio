@@ -1,4 +1,5 @@
 import { Menu, X, User, LayoutDashboard, BookOpen, Users, ArrowLeftRight, CalendarCheck, QrCode, Home, LogOut, Plus, PartyPopper, Bell, Sun, Moon } from 'lucide-react'
+import logoUrl from '../assets/logo.svg'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useUser } from '../contexts/AuthContext'
@@ -121,7 +122,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <img
-            src="/src/assets/logo.svg"
+            src={logoUrl}
             alt="Logo"
             className="h-9 shrink-0 cursor-pointer"
             onClick={() => navigate(role === 'admin' ? '/admin' : role === 'employee' ? '/employe' : '/')}

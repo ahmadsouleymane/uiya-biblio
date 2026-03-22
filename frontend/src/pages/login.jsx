@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom"
+import logoUrl from "../assets/logo.svg"
 import { ArrowLeft, BookOpen, Users, Clock, Phone, Lock, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 import toast from "react-hot-toast"
@@ -51,7 +52,7 @@ export default function Login() {
         <div className="relative z-10 flex flex-col h-full px-14 py-12">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/src/assets/logo.svg" alt="Logo" className="h-10" />
+            <img src={logoUrl} alt="Logo" className="h-10" />
           </div>
 
           {/* Texte principal */}
@@ -109,7 +110,7 @@ export default function Login() {
             Retour
           </button>
           {/* Logo mobile uniquement */}
-          <img src="/src/assets/logo.svg" alt="Logo" className="lg:hidden h-8" />
+          <img src={logoUrl} alt="Logo" className="lg:hidden h-8" />
           <div className="hidden lg:block w-16" />
         </div>
 

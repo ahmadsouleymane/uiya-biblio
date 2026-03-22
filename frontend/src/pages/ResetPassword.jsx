@@ -1,4 +1,5 @@
 import { useState } from "react"
+import logoUrl from "../assets/logo.svg"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Lock, Eye, EyeOff, ShieldCheck, KeyRound, CheckCircle } from "lucide-react"
 import toast from "react-hot-toast"
@@ -50,7 +51,7 @@ export default function ResetPassword() {
         <div className="relative z-10 flex flex-col h-full px-14 py-12">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/src/assets/logo.svg" alt="Logo" className="h-10" />
+            <img src={logoUrl} alt="Logo" className="h-10" />
           </div>
 
           {/* Texte principal */}
@@ -108,7 +109,7 @@ export default function ResetPassword() {
             Retour
           </button>
           {/* Logo mobile uniquement */}
-          <img src="/src/assets/logo.svg" alt="Logo" className="lg:hidden h-8" />
+          <img src={logoUrl} alt="Logo" className="lg:hidden h-8" />
           <div className="hidden lg:block w-16" />
         </div>
 

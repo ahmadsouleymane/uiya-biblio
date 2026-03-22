@@ -68,6 +68,11 @@ app.use("/settings", settingsRoutes)
 app.use("/audit", auditRoutes)
 app.use("/notification", notificationRoutes)
 
+// Health check — uptime monitoring
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() })
+})
+
 startScheduler()
 
 app.listen(port, () => {
