@@ -1,0 +1,20 @@
+{
+  "name": "Bibliothèque UIYA",
+  "short_name": "Biblio UIYA",
+  "description": "Système de gestion de la bibliothèque de l'Université Internationale de Yamoussoukro",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#040848",
+  "theme_color": "#040848",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/src/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "fr"
+}
