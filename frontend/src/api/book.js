@@ -9,11 +9,6 @@ export const addBook = (data) =>
 export const getBooks = (params = {}) => {
   const query = new URLSearchParams(params).toString()
   const cacheKey = "biblio_books_" + (query || "all")
-  if (!navigator.onLine) {
-    const cached = cacheGet(cacheKey)
-    if (cached) return Promise.resolve(cached)
-    return Promise.reject(new Error("offline"))
-  }
   return apiFetch(`${API}/${query ? "?" + query : ""}`, { ...opts, method: "GET" })
     .then(r => r.json())
     .then(data => { cacheSet(cacheKey, data); return data })
@@ -21,11 +16,6 @@ export const getBooks = (params = {}) => {
 
 export const getBookById = (id) => {
   const cacheKey = "biblio_book_" + id
-  if (!navigator.onLine) {
-    const cached = cacheGet(cacheKey)
-    if (cached) return Promise.resolve(cached)
-    return Promise.reject(new Error("offline"))
-  }
   return apiFetch(`${API}/${id}`, { ...opts, method: "GET" })
     .then(r => r.json())
     .then(data => { cacheSet(cacheKey, data); return data })
