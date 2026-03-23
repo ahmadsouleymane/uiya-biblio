@@ -34,6 +34,7 @@ import ResetPassword from "./pages/ResetPassword"
 import AdminSettings from "./pages/admin/AdminSettings"
 import AdminAudit from "./pages/admin/AdminAudit"
 import AdminImport from "./pages/admin/AdminImport"
+import AdminCategories from "./pages/admin/AdminCategories"
 import NotFound from "./pages/NotFound"
 
 // Register service worker
@@ -77,6 +78,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/admin/parametres" element={<PrivateRoute roles={["admin"]}><AdminSettings /></PrivateRoute>} />
         <Route path="/admin/audit" element={<PrivateRoute roles={["admin"]}><AdminAudit /></PrivateRoute>} />
         <Route path="/admin/import" element={<PrivateRoute roles={["admin"]}><AdminImport /></PrivateRoute>} />
+        <Route path="/admin/categories" element={<PrivateRoute roles={["admin"]}><AdminCategories /></PrivateRoute>} />
         <Route path="/add-book" element={<PrivateRoute roles={["admin","employee"]}><AddBook /></PrivateRoute>} />
 
         {/* Employé */}

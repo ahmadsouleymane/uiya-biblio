@@ -1,4 +1,4 @@
-import { Menu, X, User, LayoutDashboard, BookOpen, Users, ArrowLeftRight, CalendarCheck, QrCode, Home, LogOut, Plus, PartyPopper, Bell, Sun, Moon } from 'lucide-react'
+import { Menu, X, User, LayoutDashboard, BookOpen, Users, ArrowLeftRight, CalendarCheck, QrCode, Home, LogOut, Plus, PartyPopper, Bell, Sun, Moon, FolderOpen } from 'lucide-react'
 import logoUrl from '../assets/logo.svg'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -22,6 +22,7 @@ const linksByRole = {
   admin: [
     { to: "/admin",                 label: "Dashboard",    icon: <LayoutDashboard className="w-4 h-4" /> },
     { to: "/admin/livres",          label: "Livres",       icon: <BookOpen className="w-4 h-4" /> },
+    { to: "/admin/categories",       label: "Catégories",   icon: <FolderOpen className="w-4 h-4" /> },
     { to: "/admin/utilisateurs",    label: "Utilisateurs", icon: <Users className="w-4 h-4" /> },
     { to: "/admin/emprunts",        label: "Emprunts",     icon: <ArrowLeftRight className="w-4 h-4" /> },
     { to: "/admin/presence",        label: "Présence",     icon: <CalendarCheck className="w-4 h-4" /> },

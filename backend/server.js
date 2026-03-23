@@ -15,6 +15,7 @@ import reviewRoutes from "./routes/review.routes.js"
 import settingsRoutes from "./routes/settings.routes.js"
 import auditRoutes from "./routes/audit.routes.js"
 import notificationRoutes from "./routes/notification.routes.js"
+import categoryRoutes from "./routes/category.routes.js"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import morgan from "morgan"
@@ -63,6 +64,7 @@ app.use("/review", reviewRoutes)
 app.use("/settings", settingsRoutes)
 app.use("/audit", auditRoutes)
 app.use("/notification", notificationRoutes)
+app.use("/category", categoryRoutes)
 
 // Health check — uptime monitoring
 app.get("/health", (_req, res) => {

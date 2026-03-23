@@ -6,11 +6,8 @@ import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X } from "lucide-react"
 import { addBook } from "../api/book"
+import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
-
-const CATEGORIES = [
-  "Droit", "Sciences économiques et de gestion", "Philosophie", "Littérature ivoirienne", "Littérature africaine", "Communication", "Développement personnel",  "Anglais", "Rédaction"
-]
 
 const EMPTY_FORM = {
   isbn: "", title: "", author: "", publisher: "", year: "",
@@ -50,6 +47,9 @@ export default function AddBook() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [categories, setCategories] = useState([])
+
+  useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
   // ── Barcode scanner ──────────────────────────────────────────────
   useEffect(() => {
@@ -286,7 +286,7 @@ export default function AddBook() {
                     style={{ color: form.category ? "var(--fg)" : "var(--muted)" }}
                   >
                     <option value="" disabled>Catégorie *</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
                   </select>
                   {errors.category && <p className="text-xs mt-1" style={{ color: "#e11d48" }}>{errors.category}</p>}
                 </div>
