@@ -1,7 +1,5 @@
 import toast from "react-hot-toast"
 
-const TIMEOUT_MS = 8000 // 8 secondes max avant d'abandonner
-
 export function apiFetch(url, options = {}) {
   const method = (options.method || "GET").toUpperCase()
   const isMutant = ["POST", "PUT", "DELETE", "PATCH"].includes(method)
@@ -11,22 +9,14 @@ export function apiFetch(url, options = {}) {
     return Promise.reject(new Error("offline"))
   }
 
+  // Plus de temps pour les POST (upload d'images base64)
+  const timeout = isMutant ? 30000 : 10000
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeout)
 
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
-    .then(res => {
-      if (res.status === 401 && !url.includes("/me") && !url.includes("/login")) {
-        localStorage.removeItem("biblio_user")
-        toast.error("Session expirée, veuillez vous reconnecter")
-        window.location.href = "/connexion"
-        throw new Error("non_authentifie")
-      }
-      return res
-    })
     .catch(err => {
-      if (err.message === "non_authentifie") throw err
       if (err.name === "AbortError" || err.message === "Failed to fetch") {
         if (isMutant) toast.error("Action impossible hors ligne")
         throw new Error("offline")
