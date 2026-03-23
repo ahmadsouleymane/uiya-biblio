@@ -16,7 +16,17 @@ export function apiFetch(url, options = {}) {
 
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
+    .then(res => {
+      if (res.status === 401) {
+        localStorage.removeItem("biblio_user")
+        toast.error("Session expirée, veuillez vous reconnecter")
+        window.location.href = "/connexion"
+        throw new Error("non_authentifie")
+      }
+      return res
+    })
     .catch(err => {
+      if (err.message === "non_authentifie") throw err
       if (err.name === "AbortError" || err.message === "Failed to fetch") {
         if (isMutant) toast.error("Action impossible hors ligne")
         throw new Error("offline")
