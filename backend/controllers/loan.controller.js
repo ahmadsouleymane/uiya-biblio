@@ -1,12 +1,10 @@
 import Loan from "../models/loan.model.js";
 import Book from "../models/book.model.js";
-import Fine from "../models/fine.model.js";
-import Reservation from "../models/reservation.model.js";
 import LibrarySettings from "../models/librarySettings.model.js";
 import Notification from "../models/notification.model.js";
-import { sendReservationAvailableEmail } from "../utils/email.js";
 
-// Fix race condition : modifie le statut en mémoire ET en DB
+const FINE_RATE = 500; // FCFA par jour de retard
+
 const markLateLoans = async (loans, loanDays = 14) => {
   const now = new Date();
   const idsToUpdate = [];
@@ -26,41 +24,18 @@ const markLateLoans = async (loans, loanDays = 14) => {
   return loans;
 };
 
-// Notifie le premier de la file d'attente quand un livre est rendu
-const notifyNextReservation = async (bookId) => {
-  try {
-    const book = await Book.findById(bookId);
-    const next = await Reservation.findOne({ book: bookId, status: "pending" }).sort({ createdAt: 1 }).populate("user");
-    if (!next) return;
-
-    next.status = "available";
-    next.notifiedAt = new Date();
-    await next.save();
-
-    if (next.user?.email) {
-      await sendReservationAvailableEmail(next.user.email, next.user.fullName, book?.title || "Livre", bookId);
-    }
-    await Notification.create({
-      user: next.user._id,
-      type: "reservation_available",
-      message: `"${book?.title || "Un livre"}" que vous avez réservé est maintenant disponible. Venez le récupérer dans 48h.`,
-      link: `/book/${bookId}`,
-    });
-  } catch (err) {
-    console.error("Erreur notification réservation:", err);
-  }
+const calcFine = (borrowDate, loanDays, now = new Date()) => {
+  const due = new Date(borrowDate);
+  due.setDate(due.getDate() + loanDays);
+  if (now <= due) return null;
+  const daysLate = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
+  return { daysLate, amount: daysLate * FINE_RATE };
 };
 
 export const borrowBook = async (req, res) => {
   try {
     const { userId, bookId } = req.body;
     if (!userId || !bookId) return res.status(400).json({ message: "userId et bookId requis" });
-
-    // Vérifier amendes impayées
-    const pendingFines = await Fine.countDocuments({ user: userId, status: "pending" });
-    if (pendingFines > 0) {
-      return res.status(400).json({ message: "Cet utilisateur a des amendes impayées. Régularisez sa situation avant d'emprunter." });
-    }
 
     const settings = await LibrarySettings.getSettings();
 
@@ -98,25 +73,13 @@ export const returnBook = async (req, res) => {
     if (loan.status === "returned") return res.status(400).json({ message: "Ce livre a déjà été retourné" });
 
     const now = new Date();
-    const dueDate = new Date(loan.borrowDate);
-    dueDate.setDate(dueDate.getDate() + settings.loanDurationDays);
+    const fine = calcFine(loan.borrowDate, settings.loanDurationDays, now);
 
-    let fine = null;
-    if (now > dueDate) {
-      // Calculer l'amende
-      const daysLate = Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24));
-      const amount = daysLate * settings.fineRatePerDay;
-      fine = await Fine.create({
-        loan: loan._id,
-        user: loan.user,
-        amount,
-        daysLate,
-        reason: `Retard de ${daysLate} jour(s)`,
-      });
+    if (fine) {
       await Notification.create({
         user: loan.user,
         type: "fine_created",
-        message: `Une amende de ${amount} FCFA a été générée pour retard de ${daysLate} jour(s).`,
+        message: `Amende de ${fine.amount} FCFA pour retard de ${fine.daysLate} jour(s) — livre rendu.`,
         link: "/profile",
       });
     }
@@ -127,11 +90,8 @@ export const returnBook = async (req, res) => {
 
     await Book.findByIdAndUpdate(loan.book, { $inc: { availableCopies: 1 } });
 
-    // Notifier la file d'attente
-    await notifyNextReservation(loan.book);
-
     await loan.populate(["user", "book"]);
-    res.status(200).json({ loan, fine: fine ? { amount: fine.amount, daysLate: fine.daysLate } : null });
+    res.status(200).json({ loan, fine });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Erreur serveur" });
@@ -183,24 +143,13 @@ export const returnByUserAndIsbn = async (req, res) => {
     if (!loan) return res.status(404).json({ message: "Aucun emprunt actif pour ce lecteur et ce livre" });
 
     const now = new Date();
-    const dueDate = new Date(loan.borrowDate);
-    dueDate.setDate(dueDate.getDate() + settings.loanDurationDays);
+    const fine = calcFine(loan.borrowDate, settings.loanDurationDays, now);
 
-    let fine = null;
-    if (now > dueDate) {
-      const daysLate = Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24));
-      const amount = daysLate * settings.fineRatePerDay;
-      fine = await Fine.create({
-        loan: loan._id,
-        user: loan.user,
-        amount,
-        daysLate,
-        reason: `Retard de ${daysLate} jour(s)`,
-      });
+    if (fine) {
       await Notification.create({
         user: loan.user,
         type: "fine_created",
-        message: `Une amende de ${amount} FCFA a été générée pour retard de ${daysLate} jour(s).`,
+        message: `Amende de ${fine.amount} FCFA pour retard de ${fine.daysLate} jour(s) — livre rendu.`,
         link: "/profile",
       });
     }
@@ -210,10 +159,8 @@ export const returnByUserAndIsbn = async (req, res) => {
     await loan.save();
     await Book.findByIdAndUpdate(book._id, { $inc: { availableCopies: 1 } });
 
-    await notifyNextReservation(book._id);
-
     await loan.populate(["user", "book"]);
-    res.status(200).json({ loan, fine: fine ? { amount: fine.amount, daysLate: fine.daysLate } : null });
+    res.status(200).json({ loan, fine });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Erreur serveur" });
@@ -254,13 +201,12 @@ export const getEmployeeDashboardStats = async (req, res) => {
     const settings = await LibrarySettings.getSettings();
     const now = new Date();
 
-    // Retours prévus aujourd'hui
-    const dueTodayStart = new Date(now);
-    dueTodayStart.setHours(0, 0, 0, 0);
-    const dueTodayEnd = new Date(now);
-    dueTodayEnd.setHours(23, 59, 59, 999);
+    const dueTodayStart = new Date(now); dueTodayStart.setHours(0, 0, 0, 0);
+    const dueTodayEnd = new Date(now); dueTodayEnd.setHours(23, 59, 59, 999);
 
-    const activeLoans = await Loan.find({ status: { $in: ["borrowed", "late"] } }).populate("user", "fullName").populate("book", "title");
+    const activeLoans = await Loan.find({ status: { $in: ["borrowed", "late"] } })
+      .populate("user", "fullName")
+      .populate("book", "title");
     await markLateLoans(activeLoans, settings.loanDurationDays);
 
     const dueToday = activeLoans.filter(l => {
@@ -270,13 +216,12 @@ export const getEmployeeDashboardStats = async (req, res) => {
     });
 
     const overdueLoans = activeLoans.filter(l => l.status === "late");
-    const pendingReservations = await Reservation.find({ status: "available" }).populate("user", "fullName").populate("book", "title");
 
     res.status(200).json({
       dueToday: dueToday.length,
       dueTodayLoans: dueToday.slice(0, 5),
       overdueCount: overdueLoans.length,
-      pendingReservations: pendingReservations.length,
+      pendingReservations: 0,
     });
   } catch (e) {
     res.status(500).json({ message: "Erreur serveur" });

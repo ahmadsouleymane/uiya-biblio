@@ -1,5 +1,5 @@
-// Définir la largeur max pour mobile (ici 768px)
-const MOBILE_MAX_WIDTH = 425;
+// Définir la largeur max (1024px pour supporter tablettes)
+const MOBILE_MAX_WIDTH = 1024;
 
 // Fonction pour vérifier la taille de l'écran
 function checkScreenSize() {
@@ -18,8 +18,8 @@ function checkScreenSize() {
         font-family: sans-serif;
       ">
         <p>
-          Ce site est optimisé pour mobile.<br>
-          Veuillez utiliser un smartphone pour y accéder.
+          Ce site est optimisé pour mobile et tablette.<br>
+          Veuillez utiliser un smartphone ou une tablette pour y accéder.
         </p>
       </div>
     `;

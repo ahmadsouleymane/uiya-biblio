@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useUser } from "../contexts/AuthContext"
+import { useTheme } from "../contexts/ThemeContext"
 import {
   Home, User, QrCode, ArrowLeftRight, BookOpen,
   Users, CalendarCheck, LayoutDashboard, Plus, Activity,
@@ -28,14 +29,14 @@ const navByRole = {
   ],
 }
 
-const HIDDEN_ROUTES = ["/connexion", "/inscription"]
+const HIDDEN_ROUTES = ["/connexion", "/inscription", "/mon-qr", "/mot-de-passe-oublie"]
 
 export default function BottomNav() {
   const { user } = useUser()
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  const visible = !!user && !HIDDEN_ROUTES.includes(pathname)
+  const visible = !!user && !HIDDEN_ROUTES.includes(pathname) && !pathname.startsWith("/reinitialiser-mdp")
 
   useEffect(() => {
     return () => { document.body.style.paddingBottom = "0" }
@@ -43,16 +44,17 @@ export default function BottomNav() {
 
   if (!visible) return null
 
+  const { theme } = useTheme()
   const items = navByRole[user.role] || navByRole.student
-  const isDark = user.role === "admin" || user.role === "employee"
   const isActive = (to) => pathname === to
+  const dark = theme === "dark"
 
   // Couleurs selon le thème
-  const bg         = isDark ? "#040848" : "var(--surface)"
-  const borderTop  = isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--border)"
-  const activeColor = isDark ? "#A71E3C" : "#040848"
-  const inactiveColor = isDark ? "rgba(255,255,255,0.38)" : "var(--muted)"
-  const activeBg   = isDark ? "rgba(167,30,60,0.15)" : "rgba(4,8,72,0.07)"
+  const bg          = dark ? "#100c0c" : "var(--surface)"
+  const borderTop   = dark ? "1px solid rgba(167,30,60,0.18)" : "1px solid var(--border)"
+  const activeColor  = dark ? "#d42040" : "#040848"
+  const inactiveColor = dark ? "rgba(240,235,232,0.35)" : "var(--muted)"
+  const activeBg    = dark ? "rgba(212,32,64,0.12)" : "rgba(4,8,72,0.07)"
 
   return (
     /* md:hidden — visible uniquement sur mobile */
@@ -64,8 +66,8 @@ export default function BottomNav() {
         zIndex: 60,
         background: bg,
         borderTop,
-        boxShadow: isDark
-          ? "0 -8px 32px rgba(4,8,72,0.35)"
+        boxShadow: dark
+          ? "0 -8px 32px rgba(0,0,0,0.55)"
           : "0 -4px 20px rgba(4,8,72,0.08)",
         height: "64px",
         paddingBottom: "env(safe-area-inset-bottom)",

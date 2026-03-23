@@ -116,9 +116,13 @@ export default function Navbar() {
     <>
       <div
         className="sticky top-0 z-40 text-white"
-        style={{ background: "#040848", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        style={{
+          background: theme === "dark" ? "#100c0c" : "#040848",
+          borderBottom: theme === "dark" ? "1px solid rgba(167,30,60,0.18)" : "1px solid rgba(255,255,255,0.08)",
+          paddingTop: "env(safe-area-inset-top)",
+        }}
       >
-        <div className="max-w-6xl mx-auto h-[62px] px-4 flex items-center justify-between gap-4">
+        <div className="w-full h-[62px] px-4 flex items-center justify-between gap-4">
 
           {/* Logo */}
           <img
@@ -310,8 +314,8 @@ export default function Navbar() {
 
                   {notifOpen && (
                     <div
-                      className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden"
-                      style={{ background: "var(--surface)", border: "1px solid var(--border)", top: "100%", zIndex: 60 }}
+                      className="fixed right-2 left-2 sm:absolute sm:left-auto sm:right-0 mt-2 sm:w-72 max-w-[calc(100vw-1rem)] rounded-2xl shadow-2xl overflow-hidden"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)", top: "auto", zIndex: 60 }}
                     >
                       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
                         <p className="text-sm font-black" style={{ color: "var(--fg)" }}>Notifications</p>
@@ -377,8 +381,12 @@ export default function Navbar() {
       {/* ── Menu mobile guest uniquement ── */}
       {!user && menuOpen && (
         <div
-          className="md:hidden fixed inset-0 top-[62px] z-50 flex flex-col px-4 py-8 gap-3"
-          style={{ background: "#040848" }}
+          className="md:hidden fixed inset-0 z-50 flex flex-col px-4 py-8 gap-3"
+          style={{
+            background: theme === "dark" ? "#100c0c" : "#040848",
+            top: "calc(62px + env(safe-area-inset-top))",
+            paddingBottom: "calc(2rem + env(safe-area-inset-bottom))",
+          }}
         >
           <button
             onClick={() => navigate('/')}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { BrowserMultiFormatReader } from "@zxing/library"
-import { QrCode, Barcode, CheckCircle, Search, X, BookOpen, RotateCcw, User } from "lucide-react"
+import { QrCode, Barcode, CheckCircle, Search, X, BookOpen, RotateCcw, User, AlertTriangle } from "lucide-react"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import { borrowBook, returnByUserAndIsbn, getUserLoans } from "../../api/loan"
@@ -16,13 +16,17 @@ function Scanner({ onResult, onCancel, label }) {
     const codeReader = new BrowserMultiFormatReader()
     let active = true
 
-    codeReader.decodeFromVideoDevice(null, videoRef.current, (result) => {
-      if (result && active) {
-        active = false
-        codeReader.reset()
-        new Audio("/done.mp3").play().catch(() => {})
-        onResult(result.getText())
-      }
+    codeReader.listVideoInputDevices().then(devices => {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label))
+      const deviceId = back?.deviceId || null
+      return codeReader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
+        if (result && active) {
+          active = false
+          codeReader.reset()
+          new Audio("/done.mp3").play().catch(() => {})
+          onResult(result.getText())
+        }
+      })
     }).catch(() => { toast.error("Impossible d'accéder à la caméra"); onCancel() })
 
     return () => { active = false; codeReader.reset() }
@@ -130,6 +134,7 @@ export default function EmployeeLoan() {
   const [scannedBook, setScannedBook] = useState(null)
   const [activeLoans, setActiveLoans] = useState([])
   const [loading, setLoading] = useState(false)
+  const [fineAlert, setFineAlert] = useState(null) // { amount, daysLate, userName, bookTitle }
 
   const handleUserQr = async (userId) => {
     setScanType(null)
@@ -162,6 +167,8 @@ export default function EmployeeLoan() {
     setActiveLoans([]); setScanType(null)
   }
 
+  const dismissFine = () => setFineAlert(null)
+
   const handleBorrow = async () => {
     if (!scannedUser || !scannedBook) return
     setLoading(true)
@@ -173,12 +180,12 @@ export default function EmployeeLoan() {
     finally { setLoading(false) }
   }
 
-  const showReturnResult = (data) => {
+  const showReturnResult = (data, userName, bookTitle) => {
     const loan = data.loan || data
     const fine = data.fine
     if (loan._id || loan.status === "returned") {
       if (fine) {
-        toast.success(`Retour enregistré ! ⚠️ Amende: ${fine.amount} FCFA (${fine.daysLate} jour(s) de retard)`, { duration: 6000 })
+        setFineAlert({ amount: fine.amount, daysLate: fine.daysLate, userName, bookTitle })
       } else {
         toast.success("Retour enregistré !")
       }
@@ -192,7 +199,7 @@ export default function EmployeeLoan() {
     setLoading(true)
     try {
       const data = await returnByUserAndIsbn(scannedUser._id, scannedBook.isbn)
-      if (showReturnResult(data)) reset()
+      if (showReturnResult(data, scannedUser.fullName, scannedBook.title)) reset()
       else toast.error(data.message || "Erreur")
     } catch { toast.error("Erreur serveur") }
     finally { setLoading(false) }
@@ -203,7 +210,7 @@ export default function EmployeeLoan() {
     setLoading(true)
     try {
       const data = await ret(loan._id)
-      if (showReturnResult(data)) {
+      if (showReturnResult(data, scannedUser?.fullName, loan.book?.title)) {
         setActiveLoans(prev => prev.filter(l => l._id !== loan._id))
       } else toast.error(data.message || "Erreur")
     } catch { toast.error("Erreur serveur") }
@@ -214,7 +221,52 @@ export default function EmployeeLoan() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
+      {/* ── ALERTE AMENDE ─────────────────────────────────── */}
+      {fineAlert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.7)" }}
+        >
+          <div className="w-full max-w-sm rounded-3xl overflow-hidden" style={{ background: "var(--surface)" }}>
+            {/* Header rouge */}
+            <div className="px-6 py-5 text-white text-center" style={{ background: "#e11d48" }}>
+              <AlertTriangle className="w-10 h-10 mx-auto mb-2" />
+              <p className="font-black text-xl">Retard — Amende</p>
+            </div>
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <p className="text-5xl font-black" style={{ color: "#e11d48" }}>{fineAlert.amount.toLocaleString("fr-FR")}</p>
+                <p className="text-lg font-bold text-primary mt-1">FCFA</p>
+                <p className="text-sm text-muted mt-2">{fineAlert.daysLate} jour{fineAlert.daysLate > 1 ? "s" : ""} de retard × 500 FCFA/jour</p>
+              </div>
+
+              <div className="rounded-2xl p-4 space-y-1" style={{ background: "var(--bg)" }}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted">Lecteur</span>
+                  <span className="font-semibold text-primary">{fineAlert.userName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted">Livre</span>
+                  <span className="font-semibold text-primary truncate max-w-[55%] text-right">{fineAlert.bookTitle}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-center text-muted">Encaisser le montant avant de remettre la carte de membre.</p>
+
+              <button
+                onClick={dismissFine}
+                className="w-full py-3 rounded-xl font-black text-white"
+                style={{ background: "#e11d48" }}
+              >
+                Amende encaissée — Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full px-4 py-8 space-y-5">
         <div>
           <p className="overline mb-1">Employé</p>
           <h1 className="text-3xl font-black text-primary">Gestion des prêts</h1>

@@ -18,13 +18,18 @@ function Scanner({ onResult, onCancel, label }) {
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader()
     let active = true
-    codeReader.decodeFromVideoDevice(null, videoRef.current, (result) => {
-      if (result && active) {
-        active = false
-        codeReader.reset()
-        new Audio("/done.mp3").play().catch(() => {})
-        onResult(result.getText())
-      }
+
+    codeReader.listVideoInputDevices().then(devices => {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label))
+      const deviceId = back?.deviceId || null
+      return codeReader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
+        if (result && active) {
+          active = false
+          codeReader.reset()
+          new Audio("/done.mp3").play().catch(() => {})
+          onResult(result.getText())
+        }
+      })
     }).catch(() => { toast.error("Impossible d'accéder à la caméra"); onCancel() })
     return () => { active = false; codeReader.reset() }
   }, [])
@@ -157,13 +162,15 @@ function LoanList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-        {tabs.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`tab-pill ${activeTab === tab ? "tab-pill-active" : ""}`}>
-            {tab} <span className="opacity-60 ml-1">({count(tab)})</span>
-          </button>
-        ))}
+      <div className="overflow-x-auto hide-scrollbar pb-1">
+        <div className="flex gap-2" style={{ width: "max-content" }}>
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`tab-pill ${activeTab === tab ? "tab-pill-active" : ""}`}>
+              {tab} <span className="opacity-60 ml-1">({count(tab)})</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -179,22 +186,26 @@ function LoanList() {
             {paginated.map(loan => {
               const s = statusConfig[loan.status] || statusConfig.borrowed
               return (
-                <div key={loan._id} className="row-item">
-                  {loan.book?.cover ? (
-                    <img src={loan.book.cover} alt={loan.book.title} className="w-10 h-14 object-cover rounded-lg shrink-0" />
-                  ) : (
-                    <div className="w-10 h-14 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "var(--bg)" }}>
-                      <BookOpen className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                <div key={loan._id} className="row-item flex-wrap gap-y-2">
+                  {/* Couverture + infos */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {loan.book?.cover ? (
+                      <img src={loan.book.cover} alt={loan.book.title} className="w-10 h-14 object-cover rounded-lg shrink-0" />
+                    ) : (
+                      <div className="w-10 h-14 rounded-lg shrink-0 flex items-center justify-center" style={{ background: "var(--bg)" }}>
+                        <BookOpen className="w-4 h-4" style={{ color: "var(--muted)" }} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-primary truncate">{loan.book?.title || "—"}</p>
+                      <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{loan.user?.fullName}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                        {new Date(loan.borrowDate).toLocaleDateString("fr-FR")} → {dueDate(loan.borrowDate)}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-primary truncate">{loan.book?.title || "—"}</p>
-                    <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{loan.user?.fullName}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                      Emprunté le {new Date(loan.borrowDate).toLocaleDateString("fr-FR")} · Retour le {dueDate(loan.borrowDate)}
-                    </p>
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+                  {/* Badge + action */}
+                  <div className="flex items-center gap-3 justify-between w-full sm:w-auto sm:flex-col sm:items-end sm:gap-2">
                     <span className={`badge ${s.cls}`}>{s.label}</span>
                     {loan.status !== "returned" && (
                       <button onClick={() => handleReturn(loan._id)}
@@ -404,15 +415,15 @@ function ManageLoans() {
           </div>
 
           <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--bg)" }}>
-            <div className="flex items-center gap-2 text-sm">
-              <User className="w-4 h-4" style={{ color: "var(--muted)" }} />
-              <span style={{ color: "var(--muted)" }}>Lecteur :</span>
-              <span className="font-bold text-primary">{scannedUser.fullName}</span>
+            <div className="flex items-start gap-2 text-sm min-w-0">
+              <User className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--muted)" }} />
+              <span className="shrink-0" style={{ color: "var(--muted)" }}>Lecteur :</span>
+              <span className="font-bold text-primary truncate">{scannedUser.fullName}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <BookOpen className="w-4 h-4" style={{ color: "var(--muted)" }} />
-              <span style={{ color: "var(--muted)" }}>Livre :</span>
-              <span className="font-bold text-primary">{scannedBook.title}</span>
+            <div className="flex items-start gap-2 text-sm min-w-0">
+              <BookOpen className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--muted)" }} />
+              <span className="shrink-0" style={{ color: "var(--muted)" }}>Livre :</span>
+              <span className="font-bold text-primary truncate">{scannedBook.title}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span style={{ color: "var(--muted)" }}>Opération :</span>
@@ -450,14 +461,14 @@ export default function AdminLoans() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="w-full px-4 py-8 space-y-6">
         <div>
           <p className="overline mb-1">Admin</p>
           <h1 className="text-xl md:text-3xl font-black text-primary">Emprunts</h1>
         </div>
 
         {/* Toggle liste / gérer */}
-        <div className="toggle-wrap" style={{ maxWidth: "280px" }}>
+        <div className="toggle-wrap sm:max-w-xs">
           {[
             { key: "list",   label: "Liste" },
             { key: "manage", label: "Gérer (QR)" },

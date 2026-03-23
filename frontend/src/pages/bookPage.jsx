@@ -4,11 +4,11 @@ import { useState, useEffect } from "react"
 import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
 import { getBookReviews, upsertReview, deleteReview } from "../api/review"
-import { createReservation, getMyReservations, cancelReservation } from "../api/reservation"
 import { addFavorite, removeFavorite } from "../api/user"
 import { useUser } from "../contexts/AuthContext"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
+import { useTheme } from "../contexts/ThemeContext"
 import toast from "react-hot-toast"
 
 function StarRating({ rating = 0, interactive = false, onRate }) {
@@ -21,7 +21,7 @@ function StarRating({ rating = 0, interactive = false, onRate }) {
           className={`w-4 h-4 transition-colors ${interactive ? "cursor-pointer" : ""} ${
             i <= (interactive ? (hovered || rating) : Math.round(rating))
               ? "fill-secondary text-secondary"
-              : "text-gray-300"
+              : "text-[var(--border-md)]"
           }`}
           onMouseEnter={() => interactive && setHovered(i)}
           onMouseLeave={() => interactive && setHovered(0)}
@@ -33,19 +33,19 @@ function StarRating({ rating = 0, interactive = false, onRate }) {
 }
 
 const CONDITION_LABEL = { neuf: "Neuf", bon: "Bon état", usé: "Usé", endommagé: "Endommagé" }
-const CONDITION_COLOR = { neuf: "bg-green-100 text-green-700", bon: "bg-blue-100 text-blue-700", usé: "bg-yellow-100 text-yellow-700", endommagé: "bg-red-100 text-red-700" }
+const CONDITION_BADGE = { neuf: "badge badge-green", bon: "badge badge-blue", usé: "badge badge-yellow", endommagé: "badge badge-red" }
 
 export default function BookPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useUser()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [book, setBook] = useState(null)
   const [related, setRelated] = useState([])
   const [loading, setLoading] = useState(true)
   const [liked, setLiked] = useState(false)
   const [borrowing, setBorrowing] = useState(false)
-  const [reserving, setReserving] = useState(false)
-  const [myReservation, setMyReservation] = useState(null)
   const [reviews, setReviews] = useState([])
   const [reviewAvg, setReviewAvg] = useState(0)
   const [myRating, setMyRating] = useState(0)
@@ -88,15 +88,7 @@ export default function BookPage() {
 
   useEffect(() => {
     if (user) {
-      // Vérifier si l'utilisateur a le livre en favori
       setLiked(user.favorites?.some(f => (f._id || f) === id) || false)
-      // Vérifier réservation active
-      getMyReservations().then(data => {
-        if (Array.isArray(data)) {
-          const active = data.find(r => (r.book?._id || r.book) === id && ["pending", "available"].includes(r.status))
-          setMyReservation(active || null)
-        }
-      }).catch(() => {})
     }
   }, [id, user])
 
@@ -116,28 +108,6 @@ export default function BookPage() {
     } finally {
       setBorrowing(false)
     }
-  }
-
-  const handleReserve = async () => {
-    if (!user) { toast.error("Connecte-toi pour réserver"); navigate("/connexion"); return }
-    if (myReservation) {
-      // Annuler
-      setReserving(true)
-      try {
-        await cancelReservation(myReservation._id)
-        setMyReservation(null)
-        toast.success("Réservation annulée")
-      } catch { toast.error("Erreur") }
-      setReserving(false)
-      return
-    }
-    setReserving(true)
-    try {
-      const data = await createReservation(book._id)
-      if (data._id) { setMyReservation(data); toast.success("Réservation ajoutée ! Vous serez notifié par email.") }
-      else toast.error(data.message || "Erreur")
-    } catch { toast.error("Erreur") }
-    setReserving(false)
   }
 
   const handleLike = async () => {
@@ -172,13 +142,13 @@ export default function BookPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <Navbar />
-      <div className="h-[50vh] bg-gray-200 animate-pulse" />
-      <div className="max-w-5xl mx-auto px-4 mt-4 space-y-4">
-        <div className="h-10 bg-gray-200 rounded-2xl animate-pulse w-2/3" />
-        <div className="h-6 bg-gray-100 rounded-2xl animate-pulse w-1/3" />
-        <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+      <div className="h-[50vh] skeleton" />
+      <div className="w-full px-4 mt-4 space-y-4">
+        <div className="h-10 skeleton rounded-2xl w-2/3" />
+        <div className="h-6 skeleton rounded-2xl w-1/3" />
+        <div className="h-32 skeleton rounded-2xl" />
       </div>
     </div>
   )
@@ -196,18 +166,18 @@ export default function BookPage() {
   const myReview = reviews.find(r => r.user?._id === user?._id)
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <Navbar />
 
       {/* Hero */}
-      <div className="relative overflow-hidden" style={{ background: "#040848" }}>
+      <div className="relative overflow-hidden" style={{ background: dark ? "#100c0c" : "#040848" }}>
         {book.cover && (
           <img src={book.cover} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-35 pointer-events-none" />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/55 via-primary/45 to-primary/85" />
 
         {/* Top bar */}
-        <div className="relative z-20 flex items-center justify-between px-4 pt-6 max-w-5xl mx-auto">
+        <div className="relative z-20 flex items-center justify-between px-4 pt-6 w-full">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -218,7 +188,7 @@ export default function BookPage() {
         </div>
 
         {/* Cover + info */}
-        <div className="relative z-20 max-w-5xl mx-auto px-5 pt-7 pb-12 flex flex-col items-center gap-5 md:flex-row md:items-end md:gap-10 md:pb-14 md:px-8">
+        <div className="relative z-20 w-full px-4 pt-7 pb-12 flex flex-col items-center gap-5 md:flex-row md:items-end md:gap-10 md:pb-14 md:px-8">
           <div className="shrink-0 w-36 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
             <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
           </div>
@@ -237,8 +207,8 @@ export default function BookPage() {
       </div>
 
       {/* Quick stats */}
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-xl -mt-6 relative z-30 grid grid-cols-3 divide-x divide-gray-100 overflow-hidden border border-gray-100">
+      <div className="w-full px-4">
+        <div className="card rounded-3xl shadow-xl -mt-6 relative z-30 grid grid-cols-3 divide-x overflow-hidden" style={{ borderColor: "var(--border)" }}>
           {[
             { icon: <BookOpen className="w-5 h-5" />, value: book.pages, label: "Pages" },
             { icon: <Calendar className="w-5 h-5" />, value: book.year, label: "Année" },
@@ -247,14 +217,14 @@ export default function BookPage() {
             <div key={i} className="flex flex-col items-center py-5 gap-1">
               <div className="text-secondary">{s.icon}</div>
               <p className="text-xl font-black text-primary">{s.value}</p>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">{s.label}</p>
+              <p className="text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Content — 2 colonnes sur desktop */}
-      <div className="max-w-5xl mx-auto px-4 mt-8 pb-48 lg:pb-28 lg:grid lg:grid-cols-3 lg:gap-8">
+      <div className="w-full px-4 mt-6 pb-40 lg:pb-28 lg:grid lg:grid-cols-3 lg:gap-8">
 
         {/* Colonne principale */}
         <div className="lg:col-span-2 space-y-8">
@@ -263,12 +233,12 @@ export default function BookPage() {
           {(book.condition || book.location) && (
             <div className="flex gap-2 flex-wrap">
               {book.condition && (
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 ${CONDITION_COLOR[book.condition] || "bg-gray-100 text-gray-600"}`}>
+                <span className={`${CONDITION_BADGE[book.condition] || "badge badge-gray"} flex items-center gap-1`}>
                   <Wrench className="w-3 h-3" /> {CONDITION_LABEL[book.condition] || book.condition}
                 </span>
               )}
               {book.location && (
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-600 flex items-center gap-1">
+                <span className="badge badge-gray flex items-center gap-1">
                   <MapPin className="w-3 h-3" /> {book.location}
                 </span>
               )}
@@ -279,20 +249,22 @@ export default function BookPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">À propos</p>
             <h2 className="text-2xl font-black text-primary mb-4">Description</h2>
-            <p className="text-gray-600 leading-relaxed">{book.description || "Aucune description disponible pour ce livre."}</p>
+            <p className="leading-relaxed" style={{ color: "var(--muted)" }}>{book.description || "Aucune description disponible pour ce livre."}</p>
           </div>
 
           {/* Ressource numérique */}
           {book.digitalUrl && (
-            <div className="bg-blue-50 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <Link2 className="w-5 h-5 text-blue-600" />
+            <div className="rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4" style={{ background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.18)" }}>
+              <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(96,165,250,0.15)" }}>
+                  <Link2 className="w-5 h-5" style={{ color: "#60a5fa" }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm" style={{ color: "var(--fg)" }}>Ressource numérique</p>
+                  <p className="text-xs truncate" style={{ color: "#60a5fa" }}>{book.digitalUrl}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-blue-900">Ressource numérique disponible</p>
-                <p className="text-blue-600 text-sm truncate">{book.digitalUrl}</p>
-              </div>
-              <a href={book.digitalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+              <a href={book.digitalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm text-white shrink-0 w-full sm:w-auto text-center" style={{ background: "#2563eb" }}>
                 Accéder
               </a>
             </div>
@@ -301,27 +273,28 @@ export default function BookPage() {
           {/* Section Avis */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">Communauté</p>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
               <h2 className="text-2xl font-black text-primary">Avis des lecteurs</h2>
               {reviews.length > 0 && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={reviewAvg} />
                   <span className="text-lg font-black text-primary">{reviewAvg}</span>
-                  <span className="text-gray-400 text-sm">({reviews.length})</span>
+                  <span className="text-sm" style={{ color: "var(--muted)" }}>({reviews.length})</span>
                 </div>
               )}
             </div>
 
             {/* Formulaire avis */}
             {user && (
-              <div className="bg-gray-50 rounded-2xl p-5 mb-5">
-                <p className="font-semibold mb-3 text-sm">{myReview ? "Modifier votre avis" : "Laisser un avis"}</p>
+              <div className="card rounded-2xl p-5 mb-5">
+                <p className="font-semibold mb-3 text-sm" style={{ color: "var(--fg)" }}>{myReview ? "Modifier votre avis" : "Laisser un avis"}</p>
                 <div className="flex items-center gap-2 mb-3">
                   <StarRating rating={myRating} interactive onRate={setMyRating} />
-                  {myRating > 0 && <span className="text-sm text-gray-400">{myRating}/5</span>}
+                  {myRating > 0 && <span className="text-sm" style={{ color: "var(--muted)" }}>{myRating}/5</span>}
                 </div>
                 <textarea
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-secondary"
+                  className="w-full rounded-xl px-4 py-3 text-sm resize-none focus:outline-none"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--border-md)", color: "var(--fg)" }}
                   rows={3}
                   placeholder="Votre commentaire (optionnel)"
                   value={myComment}
@@ -342,22 +315,22 @@ export default function BookPage() {
 
             {/* Liste avis */}
             {reviews.length === 0 ? (
-              <p className="text-gray-400 text-sm">Aucun avis pour l'instant. Soyez le premier !</p>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>Aucun avis pour l'instant. Soyez le premier !</p>
             ) : (
               <div className="space-y-4">
                 {reviews.map(r => (
-                  <div key={r._id} className="bg-gray-50 rounded-2xl p-4">
+                  <div key={r._id} className="card rounded-2xl p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-sm">{r.user?.fullName || "Anonyme"}</p>
-                        <p className="text-xs text-gray-400">{r.user?.department || ""}</p>
+                        <p className="font-semibold text-sm" style={{ color: "var(--fg)" }}>{r.user?.fullName || "Anonyme"}</p>
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>{r.user?.department || ""}</p>
                       </div>
                       <div className="text-right">
                         <StarRating rating={r.rating} />
-                        <p className="text-xs text-gray-400 mt-1">{new Date(r.createdAt).toLocaleDateString("fr-FR")}</p>
+                        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{new Date(r.createdAt).toLocaleDateString("fr-FR")}</p>
                       </div>
                     </div>
-                    {r.comment && <p className="text-gray-600 text-sm mt-3">{r.comment}</p>}
+                    {r.comment && <p className="text-sm mt-3" style={{ color: "var(--muted)" }}>{r.comment}</p>}
                   </div>
                 ))}
               </div>
@@ -382,8 +355,8 @@ export default function BookPage() {
                     <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-all">
                       <img src={b.cover} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
-                    <p className="mt-2 text-xs font-semibold text-gray-900 truncate">{b.title}</p>
-                    <p className="text-xs text-gray-400 truncate">{Array.isArray(b.author) ? b.author[0] : b.author}</p>
+                    <p className="mt-2 text-xs font-semibold truncate" style={{ color: "var(--fg)" }}>{b.title}</p>
+                    <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{Array.isArray(b.author) ? b.author[0] : b.author}</p>
                   </div>
                 ))}
               </div>
@@ -394,23 +367,23 @@ export default function BookPage() {
         {/* Sidebar — infos + action */}
         <div className="lg:col-span-1 space-y-4 mt-8 lg:mt-0">
           {/* Disponibilité */}
-          <div className="bg-gray-50 rounded-2xl p-5">
+          <div className="card rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-primary text-sm uppercase tracking-wider">Disponibilité</p>
-              <span className={`text-sm font-semibold px-3 py-1 rounded-full ${book.availableCopies > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+              <span className={`badge ${book.availableCopies > 0 ? "badge-green" : "badge-red"}`}>
                 {book.availableCopies > 0 ? `${book.availableCopies} dispo` : "Indisponible"}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full rounded-full h-2" style={{ background: "var(--border-md)" }}>
               <div className="bg-secondary h-2 rounded-full" style={{ width: `${availabilityPct}%` }} />
             </div>
-            <p className="text-xs text-gray-400 mt-2">{book.availableCopies} sur {book.copies} exemplaires disponibles</p>
+            <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>{book.availableCopies} sur {book.copies} exemplaires disponibles</p>
           </div>
 
           {/* Infos */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3">Détails</p>
-            <div className="bg-gray-50 rounded-2xl overflow-hidden divide-y divide-gray-100">
+            <div className="row-list">
               {[
                 { icon: <Hash className="w-4 h-4" />, label: "ISBN", value: book.isbn },
                 { icon: <Building2 className="w-4 h-4" />, label: "Éditeur", value: book.publisher },
@@ -418,10 +391,10 @@ export default function BookPage() {
                 { icon: <BookOpen className="w-4 h-4" />, label: "Pages", value: `${book.pages} pages` },
                 book.location && { icon: <MapPin className="w-4 h-4" />, label: "Emplacement", value: book.location },
               ].filter(Boolean).map((info, i) => (
-                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                <div key={i} className="row-item">
                   <div className="text-secondary shrink-0">{info.icon}</div>
-                  <p className="text-gray-400 text-sm w-20 shrink-0">{info.label}</p>
-                  <p className="text-gray-900 font-semibold text-sm truncate">{info.value || "—"}</p>
+                  <p className="text-sm w-20 shrink-0" style={{ color: "var(--muted)" }}>{info.label}</p>
+                  <p className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>{info.value || "—"}</p>
                 </div>
               ))}
             </div>
@@ -431,7 +404,7 @@ export default function BookPage() {
           <div className="hidden lg:block space-y-3">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-xs text-gray-400">Durée d'emprunt</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
                 <p className="font-bold text-primary text-sm flex items-center gap-1"><Clock className="w-4 h-4" /> {loanDays} jours</p>
               </div>
             </div>
@@ -441,30 +414,25 @@ export default function BookPage() {
                 {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
               </button>
             ) : (
-              <>
-                <button disabled className="w-full h-14 rounded-2xl font-bold text-lg bg-gray-200 text-gray-400 cursor-not-allowed">
-                  Indisponible
-                </button>
-                {user && (
-                  <button onClick={handleReserve} disabled={reserving}
-                    className={`w-full h-12 rounded-2xl font-semibold text-sm border-2 transition-all flex items-center justify-center gap-2 ${
-                      myReservation ? "border-secondary/40 text-secondary/60 bg-secondary/5" : "border-secondary text-secondary hover:bg-secondary/5"
-                    }`}>
-                    <BookMarked className="w-4 h-4" />
-                    {reserving ? "..." : myReservation ? "Annuler la réservation" : "Réserver (liste d'attente)"}
-                  </button>
-                )}
-              </>
+              <button disabled className="w-full h-14 rounded-2xl font-bold text-lg cursor-not-allowed" style={{ background: "var(--border-md)", color: "var(--muted)" }}>
+                Indisponible
+              </button>
             )}
           </div>
         </div>
       </div>
 
       {/* CTA sticky mobile */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-gray-100 px-4 py-4">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
+      <div className="lg:hidden fixed left-0 right-0 z-50 backdrop-blur-md border-t px-4 py-3"
+        style={{
+          background: "var(--surface)",
+          borderColor: "var(--border)",
+          bottom: "calc(64px + env(safe-area-inset-bottom))",
+        }}
+      >
+        <div className="w-full flex items-center gap-3">
           <div className="flex-1">
-            <p className="text-xs text-gray-400">Durée d'emprunt</p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
             <p className="font-bold text-primary text-sm">{loanDays} jours</p>
           </div>
           {book.availableCopies > 0 ? (
@@ -473,18 +441,7 @@ export default function BookPage() {
               {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
             </button>
           ) : (
-            <>
-              <button disabled className="flex-1 h-14 rounded-2xl font-bold text-lg bg-gray-200 text-gray-400">Indisponible</button>
-              {user && (
-                <button onClick={handleReserve} disabled={reserving}
-                  className={`flex-1 h-14 rounded-2xl font-semibold text-sm border-2 transition-all flex items-center justify-center gap-1 ${
-                    myReservation ? "border-secondary/40 text-secondary/60" : "border-secondary text-secondary"
-                  }`}>
-                  <BookMarked className="w-4 h-4" />
-                  {reserving ? "..." : myReservation ? "Annuler" : "Réserver"}
-                </button>
-              )}
-            </>
+            <button disabled className="flex-1 h-14 rounded-2xl font-bold text-lg" style={{ background: "var(--border-md)", color: "var(--muted)" }}>Indisponible</button>
           )}
         </div>
       </div>

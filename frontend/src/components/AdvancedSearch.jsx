@@ -106,7 +106,7 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
           style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
         >
           {/* Ligne 1 : Auteur + Éditeur */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-white/60 mb-1">Auteur</label>
               <input
@@ -140,7 +140,7 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
           </div>
 
           {/* Ligne 2 : Année de → à */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-white/60 mb-1">Année (de)</label>
               <input
@@ -178,7 +178,7 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
           </div>
 
           {/* Ligne 3 : Condition + Trier par */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-white/60 mb-1">État</label>
               <select

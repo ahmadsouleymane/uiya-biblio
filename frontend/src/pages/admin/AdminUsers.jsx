@@ -4,6 +4,7 @@ import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import { getAllUsers, updateUserRole, deleteUser } from "../../api/user"
 import { downloadCard, downloadAllCards } from "../../utils/memberCard"
+import { useTheme } from "../../contexts/ThemeContext"
 import toast from "react-hot-toast"
 
 const roleConfig = {
@@ -15,6 +16,8 @@ const roleConfig = {
 const PAGE_SIZE = 25
 
 export default function AdminUsers() {
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [users, setUsers]   = useState([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -60,14 +63,14 @@ export default function AdminUsers() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="w-full px-4 py-8 space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="overline mb-1">Admin</p>
             <h1 className="text-xl md:text-3xl font-black text-primary">Utilisateurs</h1>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="badge badge-primary">{users.length} comptes</span>
+          <div className="flex items-center gap-2 mt-1 shrink-0">
+            <span className="badge badge-primary hidden sm:inline-flex">{users.length} comptes</span>
             <button
               onClick={async () => {
                 const withQR = users.filter(u => u.qrCode)
@@ -75,10 +78,12 @@ export default function AdminUsers() {
                 toast.success(`Génération de ${withQR.length} cartes…`)
                 await downloadAllCards(withQR)
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
-              style={{ background: "#040848", color: "#fff" }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+              style={{ background: dark ? "#d42040" : "#040848", color: "#fff" }}
             >
-              <Download className="w-3.5 h-3.5" /> Tout télécharger
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tout télécharger</span>
+              <span className="sm:hidden">Cartes</span>
             </button>
           </div>
         </div>
@@ -108,14 +113,18 @@ export default function AdminUsers() {
                 const initials = u.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
                 const r = roleConfig[u.role] || roleConfig.student
                 return (
-                  <div key={u._id} className="row-item">
-                    <div className="avatar avatar-lg">{initials}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-primary">{u.fullName}</p>
-                      <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{u.email} · {u.phone}</p>
-                      <p className="text-xs" style={{ color: "#cbd5e1" }}>{u.department}{u.year && ` · ${u.year}`}</p>
+                  <div key={u._id} className="row-item flex-wrap gap-y-2">
+                    {/* Info utilisateur */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="avatar avatar-lg shrink-0">{initials}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-primary truncate">{u.fullName}</p>
+                        <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{u.email}</p>
+                        <p className="text-xs truncate" style={{ color: "#cbd5e1" }}>{u.phone}{u.department && ` · ${u.department}`}{u.year && ` · ${u.year}`}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0 ml-auto" style={{ paddingLeft: "0" }}>
                       <select
                         value={u.role}
                         onChange={e => handleRoleChange(u._id, e.target.value, u.role)}
@@ -128,7 +137,7 @@ export default function AdminUsers() {
                       {u.qrCode && (
                         <button
                           onClick={() => downloadCard(u)}
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-primary hover:bg-blue-50 transition-colors"
+                          className="w-9 h-9 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-primary hover:bg-blue-50 transition-colors"
                           title="Télécharger la carte membre"
                         >
                           <CreditCard className="w-4 h-4" />
@@ -136,7 +145,7 @@ export default function AdminUsers() {
                       )}
                       <button
                         onClick={() => handleDelete(u._id)}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                         title="Supprimer l'utilisateur"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -6,10 +6,6 @@ const librarySettingsSchema = new mongoose.Schema({
     default: 'settings',
     unique: true
   },
-  fineRatePerDay: {
-    type: Number,
-    default: 50
-  },
   maxLoansPerUser: {
     type: Number,
     default: 3
@@ -21,6 +17,11 @@ const librarySettingsSchema = new mongoose.Schema({
   emailNotifications: {
     type: Boolean,
     default: true
+  },
+  featuredBook: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Book',
+    default: null
   }
 });
 

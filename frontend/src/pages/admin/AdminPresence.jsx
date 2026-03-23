@@ -54,27 +54,31 @@ export default function AdminPresence() {
     const codeReader = new BrowserMultiFormatReader()
     let active = true
 
-    codeReader.decodeFromVideoDevice(null, videoRef.current, async (result) => {
-      if (result && active) {
-        active = false
-        codeReader.reset()
-        setScanning(false)
-        new Audio("/done.mp3").play().catch(() => {})
+    codeReader.listVideoInputDevices().then(devices => {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label))
+      const deviceId = back?.deviceId || null
+      return codeReader.decodeFromVideoDevice(deviceId, videoRef.current, async (result) => {
+        if (result && active) {
+          active = false
+          codeReader.reset()
+          setScanning(false)
+          new Audio("/done.mp3").play().catch(() => {})
 
-        const userId = result.getText()
-        try {
-          const data = await checkIn(userId)
-          if (data._id) {
-            setLastCheckin(data)
-            toast.success(`${data.user?.fullName} enregistré !`)
-            loadToday()
-          } else {
-            toast.error(data.message || "Erreur lors du check-in")
+          const userId = result.getText()
+          try {
+            const data = await checkIn(userId)
+            if (data._id) {
+              setLastCheckin(data)
+              toast.success(`${data.user?.fullName} enregistré !`)
+              loadToday()
+            } else {
+              toast.error(data.message || "Erreur lors du check-in")
+            }
+          } catch {
+            toast.error("Erreur serveur")
           }
-        } catch {
-          toast.error("Erreur serveur")
         }
-      }
+      })
     }).catch(() => {
       toast.error("Impossible d'accéder à la caméra")
       setScanning(false)
@@ -104,7 +108,7 @@ export default function AdminPresence() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <div className="w-full px-4 py-8 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="overline mb-1">Admin</p>
@@ -114,7 +118,7 @@ export default function AdminPresence() {
         </div>
 
         {/* Toggle */}
-        <div className="toggle-wrap" style={{ maxWidth: "280px" }}>
+        <div className="toggle-wrap sm:max-w-xs">
           {[
             { key: "today",   label: "Aujourd'hui" },
             { key: "history", label: "Historique" },
@@ -159,11 +163,11 @@ export default function AdminPresence() {
               </div>
 
               {lastCheckin && (
-                <div className="flex items-center gap-4 p-5 rounded-2xl fade-in-up" style={{ background: "#ecfdf5", border: "1px solid #bbf7d0" }}>
+                <div className="flex items-center gap-4 p-5 sm:rounded-2xl fade-in-up -mx-4 sm:mx-0" style={{ background: "#ecfdf5", borderTop: "1px solid #bbf7d0", borderBottom: "1px solid #bbf7d0" }}>
                   <CheckCircle className="w-9 h-9 shrink-0" style={{ color: "#059669" }} />
-                  <div>
-                    <p className="font-black text-lg" style={{ color: "#065f46" }}>{lastCheckin.user?.fullName}</p>
-                    <p className="text-sm capitalize" style={{ color: "#059669" }}>{lastCheckin.user?.role} · {lastCheckin.user?.department}</p>
+                  <div className="min-w-0">
+                    <p className="font-black text-lg truncate" style={{ color: "#065f46" }}>{lastCheckin.user?.fullName}</p>
+                    <p className="text-sm capitalize truncate" style={{ color: "#059669" }}>{lastCheckin.user?.role} · {lastCheckin.user?.department}</p>
                     <p className="text-xs mt-1" style={{ color: "#6ee7b7" }}>
                       Entrée à {fmt(lastCheckin.checkIn)}
                     </p>
@@ -197,20 +201,19 @@ export default function AdminPresence() {
                         {p.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-primary">{p.user?.fullName}</p>
+                        <p className="font-semibold text-sm text-primary truncate">{p.user?.fullName}</p>
                         <p className="text-xs" style={{ color: "var(--muted)" }}>
-                          Entrée {fmt(p.checkIn)}
-                          {p.checkOut && ` · Sortie ${fmt(p.checkOut)}`}
+                          {fmt(p.checkIn)}{p.checkOut && ` → ${fmt(p.checkOut)}`}
                         </p>
                       </div>
                       {p.checkOut ? (
-                        <span className="badge badge-gray">Sorti</span>
+                        <span className="badge badge-gray shrink-0">Sorti</span>
                       ) : (
                         <button
                           onClick={() => handleCheckOut(p._id)}
-                          className="btn btn-sm btn-secondary flex items-center gap-1"
+                          className="btn btn-sm btn-secondary flex items-center gap-1 shrink-0"
                         >
-                          <XCircle className="w-3.5 h-3.5" /> Faire sortir
+                          <XCircle className="w-3.5 h-3.5" /> Sortir
                         </button>
                       )}
                     </div>
@@ -238,23 +241,16 @@ export default function AdminPresence() {
                   const initials = p.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
                   return (
                     <div key={p._id} className="row-item">
-                      <div className="avatar avatar-lg">{initials}</div>
+                      <div className="avatar avatar-lg shrink-0">{initials}</div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm text-primary">{p.user?.fullName}</p>
-                          <span className={`badge ${r.cls}`}>{r.label}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="font-semibold text-sm text-primary truncate">{p.user?.fullName}</p>
+                          <span className={`badge ${r.cls} shrink-0`}>{r.label}</span>
                         </div>
                         <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{p.user?.department}</p>
-                        <p className="text-xs" style={{ color: "#cbd5e1" }}>{new Date(p.checkIn).toLocaleDateString("fr-FR")}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-primary">
-                          {fmt(p.checkIn)}{" "}
-                          <span style={{ color: "#cbd5e1" }}>→</span>{" "}
-                          {p.checkOut
-                            ? <span>{fmt(p.checkOut)}</span>
-                            : <span style={{ color: "#059669" }}>En salle</span>
-                          }
+                        <p className="text-xs mt-0.5" style={{ color: "#cbd5e1" }}>
+                          {new Date(p.checkIn).toLocaleDateString("fr-FR")} · {fmt(p.checkIn)}{" "}
+                          → {p.checkOut ? fmt(p.checkOut) : <span style={{ color: "#059669" }}>En salle</span>}
                         </p>
                       </div>
                     </div>

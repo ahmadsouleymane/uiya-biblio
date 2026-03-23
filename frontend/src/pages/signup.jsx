@@ -5,6 +5,7 @@ import { useState } from "react"
 import toast from "react-hot-toast"
 import { addUser } from "../api/user"
 import { useUser } from "../contexts/AuthContext"
+import { useTheme } from "../contexts/ThemeContext"
 
 const departments = [
   "Informatique option Génie Logiciel", "Droit", "Anglais",
@@ -15,6 +16,8 @@ const years = ["L1", "L2", "L3", "M1", "M2"]
 export default function SignUp() {
   const navigate = useNavigate()
   const { setUser } = useUser()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [form, setForm] = useState({ fullName: "", department: "", year: "", email: "", phone: "", password: "", confirmPassword: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -51,7 +54,7 @@ export default function SignUp() {
       {/* ── Panneau gauche (branding) — desktop ── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(160deg, #040848 0%, #0d1370 50%, #1a1f8a 100%)" }}
+        style={{ background: dark ? "linear-gradient(160deg, #1c0a0e 0%, #2e1018 50%, #3a1220 100%)" : "linear-gradient(160deg, #040848 0%, #0d1370 50%, #1a1f8a 100%)" }}
       >
         {/* Cercles décoratifs */}
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10" style={{ background: "#A71E3C" }} />
@@ -159,7 +162,7 @@ export default function SignUp() {
               </div>
 
               {/* Département + Année */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
                     Département
@@ -228,7 +231,7 @@ export default function SignUp() {
               </div>
 
               {/* Mot de passe */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
                     Mot de passe
@@ -301,9 +304,9 @@ export default function SignUp() {
               <button
                 onClick={() => navigate("/connexion")}
                 className="font-black transition-colors"
-                style={{ color: "#040848" }}
+                style={{ color: dark ? "#d42040" : "#040848" }}
                 onMouseEnter={e => e.currentTarget.style.color = "#A71E3C"}
-                onMouseLeave={e => e.currentTarget.style.color = "#040848"}
+                onMouseLeave={e => e.currentTarget.style.color = dark ? "#d42040" : "#040848"}
               >
                 Se connecter →
               </button>

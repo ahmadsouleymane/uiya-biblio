@@ -2,9 +2,12 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, WifiOff } from "lucide-react"
 import logoUrl from "../assets/logo.svg"
+import { useTheme } from "../contexts/ThemeContext"
 
 export default function QrPage() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [qr, setQr] = useState(null)
   const [name, setName] = useState("")
   const [online, setOnline] = useState(navigator.onLine)
@@ -22,13 +25,13 @@ export default function QrPage() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: "linear-gradient(135deg, #040848 0%, #0e1a7a 100%)" }}
+      style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2d0f1c 100%)" : "linear-gradient(135deg, #040848 0%, #0e1a7a 100%)" }}
     >
       {/* Hors ligne indicator */}
       {!online && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold z-50"
-          style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)" }}
+          className="fixed left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold z-50"
+          style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", top: "calc(env(safe-area-inset-top) + 1rem)" }}
         >
           <WifiOff className="w-3.5 h-3.5" /> Mode hors ligne
         </div>
@@ -37,8 +40,8 @@ export default function QrPage() {
       {/* Retour */}
       <button
         onClick={() => navigate(-1)}
-        className="absolute top-5 left-5 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-        style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+        className="absolute left-5 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", top: "calc(env(safe-area-inset-top) + 1.25rem)" }}
       >
         <ArrowLeft className="w-4 h-4" />
       </button>

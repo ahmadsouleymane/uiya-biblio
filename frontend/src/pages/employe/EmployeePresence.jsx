@@ -25,27 +25,31 @@ export default function EmployeePresence() {
     const codeReader = new BrowserMultiFormatReader()
     let active = true
 
-    codeReader.decodeFromVideoDevice(null, videoRef.current, async (result) => {
-      if (result && active) {
-        active = false
-        codeReader.reset()
-        setScanning(false)
-        new Audio("/done.mp3").play().catch(() => {})
+    codeReader.listVideoInputDevices().then(devices => {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label))
+      const deviceId = back?.deviceId || null
+      return codeReader.decodeFromVideoDevice(deviceId, videoRef.current, async (result) => {
+        if (result && active) {
+          active = false
+          codeReader.reset()
+          setScanning(false)
+          new Audio("/done.mp3").play().catch(() => {})
 
-        const userId = result.getText()
-        try {
-          const data = await checkIn(userId)
-          if (data._id) {
-            setLastCheckin(data)
-            toast.success(`${data.user?.fullName} enregistré !`)
-            loadPresences()
-          } else {
-            toast.error(data.message || "Erreur lors du check-in")
+          const userId = result.getText()
+          try {
+            const data = await checkIn(userId)
+            if (data._id) {
+              setLastCheckin(data)
+              toast.success(`${data.user?.fullName} enregistré !`)
+              loadPresences()
+            } else {
+              toast.error(data.message || "Erreur lors du check-in")
+            }
+          } catch {
+            toast.error("Erreur serveur")
           }
-        } catch {
-          toast.error("Erreur serveur")
         }
-      }
+      })
     }).catch(() => {
       toast.error("Impossible d'accéder à la caméra")
       setScanning(false)
@@ -64,7 +68,7 @@ export default function EmployeePresence() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
         <div className="mb-6">
           <p className="overline mb-1">Employé</p>
           <h1 className="text-xl md:text-3xl font-black text-primary">Gestion des présences</h1>

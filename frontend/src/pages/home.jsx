@@ -8,8 +8,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getBooks, getBookStats, getRecommendations } from "../api/book";
+import { getSettings } from "../api/settings";
 import { getEvents, registerForEvent, unregisterFromEvent } from "../api/event";
 import { useUser } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import useOnline from "../hooks/useOnline";
 import toast from "react-hot-toast";
 
@@ -28,6 +30,7 @@ import etranger from "../assets/etranger.jpg";
 import rue from "../assets/rue.jpg";
 import allah from "../assets/allah.jpeg";
 import hero from "../assets/hero.jpg";
+import aventure from "../assets/aventure.jpg"
 
 const categories = [
   { name: "Philosophie", img: phi },
@@ -48,7 +51,7 @@ const steps = [
     number: "01",
     icon: <UserPlus className="w-6 h-6" />,
     title: "Crée ton compte",
-    desc: "Inscris-toi gratuitement en quelques secondes avec ton email universitaire.",
+    desc: "Inscris-toi gratuitement en quelques secondes avec ton email.",
   },
   {
     number: "02",
@@ -74,8 +77,8 @@ function BookCard({ book, onClick }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </div>
-      <p className="mt-2 text-sm font-semibold text-gray-900 truncate">{book.title}</p>
-      <p className="text-xs text-gray-400 truncate">{Array.isArray(book.author) ? book.author[0] : book.author}</p>
+      <p className="mt-2 text-sm font-semibold truncate" style={{ color: "var(--fg)" }}>{book.title}</p>
+      <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{Array.isArray(book.author) ? book.author[0] : book.author}</p>
     </div>
   );
 }
@@ -93,6 +96,7 @@ function BookCardSkeleton() {
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { theme } = useTheme();
   const online = useOnline();
   const [search, setSearch] = useState("");
   const [books, setBooks] = useState([]);
@@ -100,6 +104,7 @@ export default function Home() {
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
   const [events, setEvents] = useState([]);
+  const [featuredBook, setFeaturedBook] = useState(undefined); // undefined = loading, null = none
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [registering, setRegistering] = useState(false);
   const [registeredIds, setRegisteredIds] = useState(() => {
@@ -116,6 +121,9 @@ export default function Home() {
     getEvents()
       .then(data => setEvents(Array.isArray(data) ? data.slice(0, 4) : []))
       .catch(() => {});
+    getSettings()
+      .then(data => setFeaturedBook(data.featuredBook || null))
+      .catch(() => setFeaturedBook(null));
   }, []);
 
   useEffect(() => {
@@ -159,7 +167,7 @@ export default function Home() {
   const catalogBooks = books.slice(0, 12);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <Navbar />
 
       {/* ── EVENT DETAIL MODAL ───────────────────────────── */}
@@ -175,7 +183,7 @@ export default function Home() {
             onClick={e => e.stopPropagation()}
           >
             {/* Poster */}
-            <div className="md:w-5/12 shrink-0 relative h-52 md:h-auto md:self-stretch" style={{ background: "#f1f3f9" }}>
+            <div className="md:w-5/12 shrink-0 relative h-44 sm:h-52 md:h-auto md:self-stretch" style={{ background: "var(--surface-alt)" }}>
               <img
                 src={selectedEvent.poster}
                 alt={selectedEvent.title}
@@ -192,7 +200,7 @@ export default function Home() {
             <div className="flex-1 flex flex-col p-6 overflow-y-auto">
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="self-end w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center mb-3 shrink-0"
+                className="self-end w-10 h-10 rounded-full flex items-center justify-center mb-3 shrink-0 hover:bg-[var(--row-hover)]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -212,7 +220,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <p className="text-sm leading-relaxed mb-6" style={{ color: "#475569" }}>{selectedEvent.description}</p>
+              <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>{selectedEvent.description}</p>
 
               {/* CTA inscription */}
               {new Date(selectedEvent.date) >= new Date() && (
@@ -223,7 +231,7 @@ export default function Home() {
                     title={!online ? "Action impossible hors ligne" : undefined}
                     className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all"
                     style={{
-                      background: !online ? "rgba(100,116,139,0.1)" : registeredIds.includes(selectedEvent._id) ? "rgba(5,150,105,0.08)" : "#040848",
+                      background: !online ? "rgba(100,116,139,0.1)" : registeredIds.includes(selectedEvent._id) ? "rgba(5,150,105,0.08)" : (theme === "dark" ? "#d42040" : "#040848"),
                       color: !online ? "var(--muted)" : registeredIds.includes(selectedEvent._id) ? "#059669" : "#fff",
                       border: !online ? "1.5px solid #cbd5e1" : registeredIds.includes(selectedEvent._id) ? "1.5px solid #059669" : "none",
                       opacity: registering ? 0.6 : 1,
@@ -265,7 +273,7 @@ export default function Home() {
       )}
 
       {/* ── HERO ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden" style={{ background: "#040848", minHeight: "100svh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <section className="relative overflow-hidden" style={{ background: theme === "dark" ? "#100c0c" : "#040848", minHeight: `95vh`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         {/* Hero image background */}
         <img src={hero} alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none" />
 
@@ -277,30 +285,30 @@ export default function Home() {
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(167,30,60,0.12) 0%, transparent 65%)" }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none blur-3xl" style={{ background: "rgba(255,255,255,0.02)" }} />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 pt-24 pb-20 md:py-28 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="relative z-10 w-full px-4 pt-16 pb-12 md:py-28 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
 
             {/* ── Contenu gauche ── */}
             <div className="text-center lg:text-left">
               
               {/* Title */}
-              <h1 className="text-[42px] sm:text-5xl md:text-6xl lg:text-[64px] font-black text-white leading-[1.05] mb-5 tracking-tight">
+              <h1 className="text-[28px] sm:text-5xl md:text-6xl lg:text-[64px] font-black text-white leading-[1.05] mb-4 md:mb-5 tracking-tight">
                 Explore.<br />Emprunte.<br />
                 <span style={{ color: "#A71E3C" }}>Grandis.</span>
               </h1>
 
               {/* Subtitle */}
-              <p className="text-white/45 text-sm md:text-base mb-6 max-w-xs mx-auto lg:mx-0 leading-relaxed">
-                {stats ? `${stats.totalBooks}+` : "200+"} livres disponibles — explore, emprunte et suis tes lectures en un seul endroit.
+              <p className="text-white/45 text-sm md:text-base mb-4 md:mb-6 max-w-xs mx-auto lg:mx-0 leading-relaxed">
+                260+ livres disponibles — explore, emprunte et suis tes lectures en un seul endroit.
               </p>
 
               {/* Stats pills */}
-              <div className="flex items-center gap-2.5 justify-center lg:justify-start mb-8 flex-wrap">
+              <div className="flex items-center gap-2.5 justify-center lg:justify-start mb-5 md:mb-8 flex-wrap">
                 <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <BookOpen className="w-3 h-3" /> {stats?.totalBooks ?? "200"}+ livres
+                  <BookOpen className="w-3 h-3" /> 260+ livres
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <Users className="w-3 h-3" /> {stats?.totalUsers ?? "500"}+ membres
+                  <Users className="w-3 h-3" /> 600+ membres
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <Star className="w-3 h-3" /> Accès libre
@@ -308,7 +316,7 @@ export default function Home() {
               </div>
 
               {/* Search */}
-              <div className="relative max-w-md mx-auto lg:mx-0 mb-6">
+              <div className="relative max-w-md mx-auto lg:mx-0 mb-4 md:mb-6">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
                 <input
                   type="text"
@@ -316,8 +324,8 @@ export default function Home() {
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Titre, auteur, ISBN..."
-                  className="w-full pl-11 pr-32 py-4 text-white placeholder-white/30 outline-none rounded-2xl text-sm transition-colors"
-                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}
+                  className="w-full pl-11 pr-28 py-4 text-white placeholder-white/30 outline-none rounded-2xl transition-colors"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)", fontSize: "1rem" }}
                 />
                 <button
                   onClick={handleSearch}
@@ -354,11 +362,11 @@ export default function Home() {
             {/* ── Collage livres ── */}
             <div className="flex justify-center lg:justify-end">
               {/* Mobile: fan de 3 livres */}
-              <div className="relative w-64 h-52 lg:hidden mx-auto">
+              <div className="relative w-56 h-44 sm:w-64 sm:h-52 lg:hidden mx-auto">
                 <div className="absolute left-1/2 top-4 -translate-x-1/2 w-28 aspect-[2/3] rounded-2xl overflow-hidden z-20" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
                   <img src={rebelle} alt="" className="w-full h-full object-cover" />
                 </div>
-                <div className="absolute left-6 top-8 w-22 aspect-[2/3] rounded-xl overflow-hidden z-10 -rotate-[14deg]" style={{ boxShadow: "0 12px_40px rgba(0,0,0,0.5)" }}>
+                <div className="absolute left-6 top-8 w-22 aspect-[2/3] rounded-xl overflow-hidden z-10 -rotate-[14deg]" style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
                   <img src={etranger} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute right-6 top-8 w-22 aspect-[2/3] rounded-xl overflow-hidden z-10 rotate-[14deg]" style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
@@ -369,7 +377,7 @@ export default function Home() {
 
               {/* Desktop: floating collage */}
               <div className="hidden lg:block relative h-[540px] w-full">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 aspect-[2/3] rounded-3xl overflow-hidden z-20 rotate-1" style={{ boxShadow: "0 30px_90px rgba(0,0,0,0.6)" }}>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 aspect-[2/3] rounded-3xl overflow-hidden z-20 rotate-1" style={{ boxShadow: "0 30px 90px rgba(0,0,0,0.6)" }}>
                   <img src={rebelle} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute top-6 left-8 w-32 aspect-[2/3] rounded-2xl overflow-hidden z-10 -rotate-6" style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.45)" }}>
@@ -382,7 +390,7 @@ export default function Home() {
                   <img src={allah} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute bottom-8 right-10 w-32 aspect-[2/3] rounded-2xl overflow-hidden z-10 -rotate-4" style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.45)" }}>
-                  <img src={dp} alt="" className="w-full h-full object-cover" />
+                  <img src={aventure} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full blur-3xl pointer-events-none z-0" style={{ background: "rgba(167,30,60,0.2)" }} />
               </div>
@@ -390,39 +398,14 @@ export default function Home() {
 
           </div>
         </div>
-
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: "60px" }}>
-          <svg viewBox="0 0 1440 60" preserveAspectRatio="none" className="w-full h-full" style={{ fill: "var(--bg)" }}>
-            <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" />
-          </svg>
-        </div>
+        
       </section>
 
-      {/* ── STATS ────────────────────────────────────────── */}
-      <section className="py-12 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-3 gap-4 md:gap-8">
-            {[
-              { icon: <BookOpen className="w-5 h-5 text-secondary" />, value: stats ? `+${stats.totalBooks}` : "+200", label: "Livres disponibles" },
-              { icon: <Star className="w-5 h-5 text-secondary" />, value: stats ? stats.categories : "10", label: "Catégories" },
-              { icon: <Users className="w-5 h-5 text-secondary" />, value: "1 000+", label: "Lecteurs actifs" },
-            ].map((s, i) => (
-              <div key={i} className="flex flex-col items-center text-center gap-1.5">
-                <div className="w-10 h-10 rounded-2xl bg-secondary/10 flex items-center justify-center mb-1">
-                  {s.icon}
-                </div>
-                <p className="text-2xl md:text-3xl font-black text-primary">{s.value}</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* ── COMMENT ÇA MARCHE ────────────────────────────── */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
+      <section className="py-16 section-alt">
+        <div className="w-full px-4">
           <div className="text-center mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-2">Simple & rapide</p>
             <h2 className="text-3xl md:text-4xl font-black text-primary">Comment ça marche ?</h2>
@@ -430,15 +413,21 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, i) => (
-              <div key={i} className="relative bg-white rounded-3xl p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <span className="absolute top-6 right-6 text-5xl font-black text-gray-100 leading-none select-none">
+              <div key={i} className="card relative rounded-3xl p-7 shadow-sm hover:shadow-md transition-shadow">
+                <span className="absolute top-6 right-6 text-5xl font-black leading-none select-none" style={{ color: "var(--border-md)" }}>
                   {step.number}
                 </span>
-                <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-5">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                  style={{
+                    background: theme === "dark" ? "rgba(167,30,60,0.12)" : "rgba(4,8,72,0.05)",
+                    color: theme === "dark" ? "#d42040" : "#040848",
+                  }}
+                >
                   {step.icon}
                 </div>
-                <h3 className="font-black text-gray-900 text-lg mb-2">{step.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+                <h3 className="font-black text-lg mb-2" style={{ color: "var(--fg)" }}>{step.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{step.desc}</p>
               </div>
             ))}
           </div>
@@ -447,15 +436,15 @@ export default function Home() {
 
       {/* ── NOUVEAUTÉS ───────────────────────────────────── */}
       <section className="py-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-end justify-between px-4 mb-8">
-            <div>
+        <div className="w-full">
+          <div className="flex items-end justify-between gap-3 px-4 mb-8">
+            <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Récemment ajoutés</p>
-              <h2 className="text-3xl md:text-4xl font-black text-primary">Nouveautés</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-primary">Nouveautés</h2>
             </div>
             <button
               onClick={() => navigate("/category/tous")}
-              className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all"
+              className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all shrink-0"
             >
               Voir tout <ChevronRight className="w-4 h-4" />
             </button>
@@ -468,7 +457,7 @@ export default function Home() {
                 ? newBooks.map((book) => (
                     <BookCard key={book._id} book={book} onClick={() => navigate(`/book/${book._id}`)} />
                   ))
-                : <p className="text-gray-400 text-sm py-4">Aucun livre disponible</p>
+                : <p className="text-sm py-4" style={{ color: "var(--muted)" }}>Aucun livre disponible</p>
             }
           </div>
         </div>
@@ -476,8 +465,8 @@ export default function Home() {
 
       {/* ── RECOMMANDATIONS ──────────────────────────────── */}
       {user && recommendations.length > 0 && (
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 section-alt">
+          <div className="w-full">
             <div className="flex items-end justify-between px-4 mb-8">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Rien que pour toi</p>
@@ -497,29 +486,29 @@ export default function Home() {
 
       {/* ── ACTIVITÉS ────────────────────────────────────── */}
       {events.length > 0 && (
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex items-end justify-between mb-10">
-              <div>
+        <section className="py-16 section-alt">
+          <div className="w-full px-4">
+            <div className="flex items-end justify-between gap-3 mb-10">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Agenda</p>
-                <h2 className="text-3xl md:text-4xl font-black text-primary">Activités de la bibliothèque</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-primary">Activités</h2>
               </div>
               <button
                 onClick={() => navigate("/activity")}
-                className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all"
+                className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all shrink-0"
               >
                 Voir tout <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {events.map((event) => (
                 <div
                   key={event._id}
                   onClick={() => setSelectedEvent(event)}
-                  className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col cursor-pointer group"
+                  className="card rounded-3xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col cursor-pointer group"
                 >
-                  <div className="relative" style={{ aspectRatio: "1 / 1.414", background: "#f1f3f9" }}>
+                  <div className="relative" style={{ aspectRatio: "1 / 1.414", background: "var(--surface-alt)" }}>
                     <img
                       src={event.poster}
                       alt={event.title}
@@ -528,9 +517,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-4 flex flex-col gap-3 flex-1">
-                    <h3 className="font-bold text-gray-900 text-sm leading-snug">{event.title}</h3>
-                    <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{event.description}</p>
-                    <div className="mt-auto flex flex-col gap-1.5 text-xs text-gray-400">
+                    <h3 className="font-bold text-sm leading-snug" style={{ color: "var(--fg)" }}>{event.title}</h3>
+                    <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "var(--muted)" }}>{event.description}</p>
+                    <div className="mt-auto flex flex-col gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
                       <span className="flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-secondary shrink-0" />
                         {new Date(event.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
@@ -550,7 +539,7 @@ export default function Home() {
 
       {/* ── CATÉGORIES ───────────────────────────────────── */}
       <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="w-full px-4">
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Explorer</p>
@@ -558,7 +547,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
             {categories.map((cat, i) => (
               <div
                 key={i}
@@ -581,70 +570,69 @@ export default function Home() {
       </section>
 
       {/* ── COUP DE CŒUR ─────────────────────────────────── */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="mb-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Sélection</p>
-            <h2 className="text-3xl md:text-4xl font-black text-primary">Coup de cœur</h2>
-          </div>
+      {featuredBook && (
+        <section className="py-16 section-alt">
+          <div className="w-full px-4">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Sélection</p>
+              <h2 className="text-3xl md:text-4xl font-black text-primary">Coup de cœur</h2>
+            </div>
 
-          <div className="bg-primary rounded-3xl overflow-hidden">
-            <div className="relative flex flex-col md:flex-row items-center gap-8 p-8 md:p-12">
-              {/* Déco */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="rounded-3xl overflow-hidden" style={{ background: theme === "dark" ? "#1a0d10" : "#040848" }}>
+              <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-8 p-6 md:p-12">
+                {/* Déco */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative shrink-0">
-                <div className="w-36 md:w-44 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
-                  <img src={rebelle} alt="Rebelle" className="w-full h-full object-cover" />
+                <div className="relative shrink-0">
+                  <div className="w-36 md:w-44 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
+                    <img src={featuredBook.cover} alt={featuredBook.title} className="w-full h-full object-cover" />
+                  </div>
                 </div>
-              </div>
 
-              <div className="relative text-white text-center md:text-left">
-                <span className="inline-block bg-secondary text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
-                  Coup de cœur
-                </span>
-                <h3 className="text-3xl md:text-4xl font-black mb-1">Rebelle</h3>
-                <p className="text-white/55 mb-3 text-sm">Fatou Keïta</p>
-                <div className="flex items-center gap-1 justify-center md:justify-start mb-5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
-                  ))}
-                  <span className="text-white/40 text-sm ml-2">5.0</span>
+                <div className="relative text-white text-center md:text-left">
+                  <span className="inline-block bg-secondary text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+                    Coup de cœur
+                  </span>
+                  <h3 className="text-3xl md:text-4xl font-black mb-1">{featuredBook.title}</h3>
+                  <p className="text-white/55 mb-3 text-sm">
+                    {Array.isArray(featuredBook.author) ? featuredBook.author[0] : featuredBook.author}
+                  </p>
+                  <div className="flex items-center gap-1 justify-center md:justify-start mb-5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => navigate(`/book/${featuredBook._id}`)}
+                    className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors"
+                  >
+                    Voir le livre <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
-                <p className="text-white/55 text-sm leading-relaxed max-w-md mb-7">
-                  Un roman bouleversant sur la résistance et l'identité africaine.
-                  L'une des œuvres les plus lues de notre collection.
-                </p>
-                <button
-                  onClick={() => navigate("/category/tous?search=rebelle")}
-                  className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors"
-                >
-                  Voir le livre <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── CATALOGUE ────────────────────────────────────── */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-end justify-between mb-8">
-            <div>
+      {(loadingBooks || catalogBooks.length > 0) && <section className="py-16">
+        <div className="w-full px-4">
+          <div className="flex items-end justify-between gap-3 mb-8">
+            <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Toute la collection</p>
-              <h2 className="text-3xl md:text-4xl font-black text-primary">Catalogue</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-primary">Catalogue</h2>
             </div>
             <button
               onClick={() => navigate("/category/tous")}
-              className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all"
+              className="flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-2.5 transition-all shrink-0"
             >
               Voir tout <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
             {loadingBooks
               ? Array(12).fill(0).map((_, i) => (
                   <div key={i}>
@@ -666,8 +654,8 @@ export default function Home() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-gray-900 truncate">{book.title}</p>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="mt-2 text-sm font-semibold truncate" style={{ color: "var(--fg)" }}>{book.title}</p>
+                    <p className="text-xs truncate" style={{ color: "var(--muted)" }}>
                       {Array.isArray(book.author) ? book.author[0] : book.author}
                     </p>
                   </div>
@@ -675,13 +663,13 @@ export default function Home() {
             }
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── CITATION ─────────────────────────────────────── */}
-      <section className="py-16 bg-primary">
-        <div className="max-w-3xl mx-auto px-4 text-center">
+      <section className="py-16" style={{ background: theme === "dark" ? "#100c0c" : "#040848", borderTop: theme === "dark" ? "1px solid rgba(167,30,60,0.15)" : "none" }}>
+        <div className="w-full px-4 text-center">
           <Lightbulb className="w-8 h-8 text-secondary mx-auto mb-6 opacity-80" />
-          <blockquote className="text-2xl md:text-3xl font-black text-white leading-snug mb-5">
+          <blockquote className="text-xl md:text-3xl font-black text-white leading-snug mb-5">
             « Un lecteur vit mille vies avant de mourir. Celui qui ne lit jamais n'en vit qu'une. »
           </blockquote>
           <p className="text-white/40 text-sm font-medium tracking-wide">— George R.R. Martin</p>

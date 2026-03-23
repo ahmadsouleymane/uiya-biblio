@@ -12,13 +12,13 @@ export default function NotFound() {
         className="w-24 h-24 rounded-3xl flex items-center justify-center mb-8"
         style={{ background: "rgba(4,8,72,0.06)" }}
       >
-        <BookOpen className="w-12 h-12" style={{ color: "#040848", opacity: 0.3 }} />
+        <BookOpen className="w-12 h-12" style={{ color: "var(--fg)", opacity: 0.3 }} />
       </div>
 
       {/* 404 */}
       <p
         className="text-8xl lg:text-9xl font-black mb-4 leading-none"
-        style={{ color: "#040848", opacity: 0.08, letterSpacing: "-0.04em" }}
+        style={{ color: "var(--fg)", opacity: 0.08, letterSpacing: "-0.04em" }}
       >
         404
       </p>

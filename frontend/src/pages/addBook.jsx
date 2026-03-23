@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X } from "lucide-react"
 import { addBook } from "../api/book"
+import { useTheme } from "../contexts/ThemeContext"
 
 const CATEGORIES = [
   "Droit", "Sciences économiques et de gestion", "Philosophie", "Littérature ivoirienne", "Littérature africaine", "Communication", "Développement personnel",  "Anglais", "Rédaction"
@@ -40,6 +41,8 @@ const Field = ({ k, placeholder, type = "text", form, errors, setField, ...rest 
 
 export default function AddBook() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const scanVideoRef = useRef(null)
   const coverVideoRef = useRef(null)
 
@@ -54,61 +57,65 @@ export default function AddBook() {
     const reader = new BrowserMultiFormatReader()
     let active = true
 
-    reader.decodeFromVideoDevice(null, scanVideoRef.current, async (result) => {
-      if (!result || !active) return
-      const code = result.getText()
-      if (!code.startsWith("978") && !code.startsWith("979")) return
-      active = false
-      reader.reset()
-      new Audio("/done.mp3").play().catch(() => {})
-      toast.loading("Recherche du livre…", { id: "isbn" })
+    reader.listVideoInputDevices().then(devices => {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label))
+      const deviceId = back?.deviceId || null
+      return reader.decodeFromVideoDevice(deviceId, scanVideoRef.current, async (result) => {
+        if (!result || !active) return
+        const code = result.getText()
+        if (!code.startsWith("978") && !code.startsWith("979")) return
+        active = false
+        reader.reset()
+        new Audio("/done.mp3").play().catch(() => {})
+        toast.loading("Recherche du livre…", { id: "isbn" })
 
-      try {
-        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`)
-        const data = await res.json()
-        const b = data[`ISBN:${code}`]
-        toast.dismiss("isbn")
-        if (b) {
-          const filledForm = {
-            isbn: code,
-            title: b.title || "",
-            author: b.authors?.[0]?.name || "",
-            publisher: b.publishers?.[0]?.name || b.publishers?.[0] || "",
-            year: b.publish_date || "",
-            pages: b.number_of_pages || "",
-            category: "",
-            cover: b.cover?.large || b.cover?.medium || "",
-            copies: 1,
-          }
-          setForm(filledForm)
+        try {
+          const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`)
+          const data = await res.json()
+          const b = data[`ISBN:${code}`]
+          toast.dismiss("isbn")
+          if (b) {
+            const filledForm = {
+              isbn: code,
+              title: b.title || "",
+              author: b.authors?.[0]?.name || "",
+              publisher: b.publishers?.[0]?.name || b.publishers?.[0] || "",
+              year: b.publish_date || "",
+              pages: b.number_of_pages || "",
+              category: "",
+              cover: b.cover?.large || b.cover?.medium || "",
+              copies: 1,
+            }
+            setForm(filledForm)
 
-          // Pré-marquer les champs manquants
-          const e = {}
-          if (!filledForm.author)    e.author    = "À compléter"
-          if (!filledForm.publisher) e.publisher = "À compléter"
-          if (!filledForm.year)      e.year      = "À compléter"
-          if (!filledForm.pages)     e.pages     = "À compléter"
-          if (!filledForm.cover)     e.cover     = "Photo requise"
-          e.category = "À sélectionner"
-          setErrors(e)
+            // Pré-marquer les champs manquants
+            const e = {}
+            if (!filledForm.author)    e.author    = "À compléter"
+            if (!filledForm.publisher) e.publisher = "À compléter"
+            if (!filledForm.year)      e.year      = "À compléter"
+            if (!filledForm.pages)     e.pages     = "À compléter"
+            if (!filledForm.cover)     e.cover     = "Photo requise"
+            e.category = "À sélectionner"
+            setErrors(e)
 
-          const missing = Object.keys(e).filter(k => k !== "category")
-          if (missing.length > 0) {
-            const labels = { author: "Auteur", publisher: "Éditeur", year: "Année", pages: "Pages", cover: "Couverture" }
-            toast(`Livre trouvé — à compléter : ${missing.map(k => labels[k]).join(", ")}`, { icon: "✏️", duration: 5000 })
+            const missing = Object.keys(e).filter(k => k !== "category")
+            if (missing.length > 0) {
+              const labels = { author: "Auteur", publisher: "Éditeur", year: "Année", pages: "Pages", cover: "Couverture" }
+              toast(`Livre trouvé — à compléter : ${missing.map(k => labels[k]).join(", ")}`, { icon: "✏️", duration: 5000 })
+            } else {
+              toast.success("Livre trouvé ! Sélectionnez la catégorie.")
+            }
           } else {
-            toast.success("Livre trouvé ! Sélectionnez la catégorie.")
+            setForm({ ...EMPTY_FORM, isbn: code })
+            toast("ISBN scanné — complétez manuellement.", { icon: "ℹ️" })
           }
-        } else {
+        } catch {
+          toast.dismiss("isbn")
           setForm({ ...EMPTY_FORM, isbn: code })
-          toast("ISBN scanné — complétez manuellement.", { icon: "ℹ️" })
+          toast.error("Erreur API OpenLibrary")
         }
-      } catch {
-        toast.dismiss("isbn")
-        setForm({ ...EMPTY_FORM, isbn: code })
-        toast.error("Erreur API OpenLibrary")
-      }
-      setStep("form")
+        setStep("form")
+      })
     })
 
     return () => { active = false; reader.reset() }
@@ -193,7 +200,7 @@ export default function AddBook() {
       <Toaster position="top-right" />
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
 
         {/* ── Choix de méthode ─────────────────────────────── */}
         {step === "method" && (
@@ -205,8 +212,8 @@ export default function AddBook() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <button onClick={() => setStep("scan")}
-                className="w-full text-white rounded-2xl p-8 flex items-center gap-6 text-left hover:opacity-90 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
+                className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity"
+                style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
                   <Barcode className="w-7 h-7" />
                 </div>
@@ -217,7 +224,7 @@ export default function AddBook() {
               </button>
 
               <button onClick={() => { setForm(EMPTY_FORM); setStep("form") }}
-                className="w-full text-white rounded-2xl p-8 flex items-center gap-6 text-left hover:opacity-90 transition-opacity"
+                className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity"
                 style={{ background: "linear-gradient(135deg, #A71E3C 0%, #8b1730 100%)" }}>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
                   <PenLine className="w-7 h-7" />

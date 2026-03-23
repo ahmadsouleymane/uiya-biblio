@@ -4,9 +4,12 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Mail, KeyRound, ShieldCheck } from "lucide-react"
 import toast from "react-hot-toast"
 import { forgotPassword } from "../api/user"
+import { useTheme } from "../contexts/ThemeContext"
 
 export default function ForgotPassword() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -30,7 +33,7 @@ export default function ForgotPassword() {
       {/* ── Panneau gauche (branding) — desktop ── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(160deg, #040848 0%, #0d1370 50%, #1a1f8a 100%)" }}
+        style={{ background: dark ? "linear-gradient(160deg, #1c0a0e 0%, #2e1018 50%, #3a1220 100%)" : "linear-gradient(160deg, #040848 0%, #0d1370 50%, #1a1f8a 100%)" }}
       >
         {/* Cercles décoratifs */}
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10" style={{ background: "#A71E3C" }} />
@@ -186,9 +189,9 @@ export default function ForgotPassword() {
                   <button
                     onClick={() => navigate("/connexion")}
                     className="font-black transition-colors"
-                    style={{ color: "#040848" }}
+                    style={{ color: dark ? "#d42040" : "#040848" }}
                     onMouseEnter={e => e.currentTarget.style.color = "#A71E3C"}
-                    onMouseLeave={e => e.currentTarget.style.color = "#040848"}
+                    onMouseLeave={e => e.currentTarget.style.color = dark ? "#d42040" : "#040848"}
                   >
                     Se connecter →
                   </button>

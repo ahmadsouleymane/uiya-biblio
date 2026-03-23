@@ -5,6 +5,7 @@ import { getBooks } from "../api/book";
 import Navbar from "../components/navbar"
 import Footer from "../components/footer";
 import AdvancedSearch from "../components/AdvancedSearch";
+import { useTheme } from "../contexts/ThemeContext";
 
 import phi from "../assets/phi.jpg";
 import dr from "../assets/dr.jpg";
@@ -34,6 +35,8 @@ const categoryCovers = {
 export default function Category() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const dark = theme === "dark";
   const [searchParams] = useSearchParams();
 
   const [filters, setFilters] = useState({
@@ -83,7 +86,7 @@ export default function Category() {
       <Navbar />
 
       {/* ── HEADER COMPACT ─────────────────────────────── */}
-      <div className="relative overflow-hidden" style={{ background: "#040848" }}>
+      <div className="relative overflow-hidden" style={{ background: dark ? "#100c0c" : "#040848" }}>
         {/* Image de fond floutée */}
         <img
           src={heroCover}
@@ -91,7 +94,7 @@ export default function Category() {
           className="absolute inset-0 w-full h-full object-cover opacity-20 scale-110 blur-md pointer-events-none"
         />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 pt-4 pb-5 space-y-4">
+        <div className="relative z-10 w-full px-4 pt-4 pb-5 space-y-4">
           {/* Ligne titre */}
           <div className="flex items-center gap-3">
             <button
@@ -126,9 +129,9 @@ export default function Category() {
       </div>
 
       {/* ── GRILLE DE LIVRES ────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-3 md:px-4 pt-4 pb-28">
+      <div className="w-full px-4 md:px-4 pt-4 pb-28">
         {loading ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {Array(18).fill(0).map((_, i) => (
               <div key={i}>
                 <div className="aspect-[2/3] rounded-xl skeleton" />
@@ -155,7 +158,7 @@ export default function Category() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {filtered.map(book => (
               <div
                 key={book._id}
@@ -186,8 +189,8 @@ export default function Category() {
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-400 rounded-full shadow block" />
                   )}
                 </div>
-                <p className="mt-1.5 text-xs font-semibold text-gray-900 leading-tight line-clamp-2">{book.title}</p>
-                <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                <p className="mt-1.5 text-xs font-semibold leading-tight line-clamp-2" style={{ color: "var(--fg)" }}>{book.title}</p>
+                <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--muted)" }}>
                   {Array.isArray(book.author) ? book.author[0] : book.author}
                 </p>
               </div>

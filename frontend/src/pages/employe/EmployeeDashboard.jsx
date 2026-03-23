@@ -4,12 +4,15 @@ import { QrCode, BookOpen, Users, Clock, AlertCircle, BookMarked } from "lucide-
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import { useUser } from "../../contexts/AuthContext"
+import { useTheme } from "../../contexts/ThemeContext"
 import { getTodayPresence } from "../../api/presence"
 import { getAllLoans } from "../../api/loan"
 
 export default function EmployeeDashboard() {
   const { user } = useUser()
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const [presences, setPresences] = useState([])
   const [loans, setLoans] = useState([])
   const [dashStats, setDashStats] = useState(null)
@@ -45,14 +48,14 @@ export default function EmployeeDashboard() {
       <Navbar />
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
-        <div className="max-w-6xl mx-auto px-4 py-10">
+      <div style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
+        <div className="w-full px-4 py-10">
           <p className="overline-white mb-1">Interface Employé</p>
           <h1 className="text-3xl md:text-4xl font-black">Bonjour, {firstName} 👋</h1>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <div className="w-full px-4 py-8 space-y-8">
 
         {/* Actions rapides */}
         <div>
@@ -60,7 +63,7 @@ export default function EmployeeDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button onClick={() => navigate("/employe/presence")}
               className="text-white rounded-2xl p-8 flex flex-col gap-4 text-left transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
+              style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2d0f1c 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.12)" }}>
                 <QrCode className="w-7 h-7" />
               </div>

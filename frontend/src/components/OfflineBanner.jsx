@@ -1,11 +1,16 @@
 import { WifiOff, Wifi } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import useOnline from "../hooks/useOnline"
+
+const NO_BOTTOM_NAV = ["/connexion", "/inscription", "/mot-de-passe-oublie"]
 
 export default function OfflineBanner() {
   const online = useOnline()
+  const { pathname } = useLocation()
   const [show, setShow]         = useState(false)
   const [justBack, setJustBack] = useState(false)
+  const hasBottomNav = !NO_BOTTOM_NAV.includes(pathname)
 
   useEffect(() => {
     if (!online) {
@@ -25,11 +30,14 @@ export default function OfflineBanner() {
 
   return (
     <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-sm font-bold transition-all"
+      className="fixed left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-sm font-bold transition-all"
       style={{
         background: justBack ? "#059669" : "#1e293b",
         color: "#fff",
         whiteSpace: "nowrap",
+        bottom: hasBottomNav
+          ? "calc(64px + env(safe-area-inset-bottom) + 12px)"
+          : "calc(env(safe-area-inset-bottom) + 12px)",
       }}
     >
       {justBack

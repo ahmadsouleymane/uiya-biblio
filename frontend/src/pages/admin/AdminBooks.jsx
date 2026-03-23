@@ -42,18 +42,18 @@ export default function AdminBooks() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="w-full px-4 py-8 space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="overline mb-1">Admin</p>
             <h1 className="text-xl md:text-3xl font-black text-primary">Livres</h1>
           </div>
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <span className="badge badge-primary">{books.length} titres</span>
-            <button onClick={() => navigate("/admin/import")} className="btn btn-ghost flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-2 mt-1 shrink-0">
+            <span className="badge badge-primary hidden sm:inline-flex">{books.length} titres</span>
+            <button onClick={() => navigate("/admin/import")} className="btn btn-ghost flex items-center gap-1 text-sm px-3 hidden sm:flex">
               <Upload className="w-4 h-4" /> Import CSV
             </button>
-            <button onClick={() => navigate("/add-book")} className="btn btn-secondary">
+            <button onClick={() => navigate("/add-book")} className="btn btn-secondary flex items-center gap-1.5 px-3">
               <Plus className="w-4 h-4" /> Ajouter
             </button>
           </div>
@@ -80,7 +80,7 @@ export default function AdminBooks() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="books-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {paginated.map(book => (
                 <div key={book._id} className="group relative cursor-pointer" onClick={() => navigate(`/book/${book._id}`)}>
                   <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
@@ -116,16 +116,16 @@ export default function AdminBooks() {
                       {book.availableCopies}/{book.copies} dispo
                     </span>
                     {/* Mobile action buttons */}
-                    <div className="flex gap-2 pt-1 md:hidden">
+                    <div className="flex gap-2 pt-2 md:hidden">
                       <button
                         onClick={e => { e.stopPropagation(); generateBookLabel(book) }}
-                        className="flex-1 h-9 rounded-lg bg-gray-100 flex items-center justify-center gap-1 text-xs font-semibold text-primary"
+                        className="flex-1 h-11 rounded-xl bg-gray-100 flex items-center justify-center gap-1 text-xs font-semibold text-primary"
                       >
                         <Tag className="w-3.5 h-3.5" /> Étiquette
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); handleDelete(book._id, book.title) }}
-                        className="flex-1 h-9 rounded-lg bg-red-50 flex items-center justify-center gap-1 text-xs font-semibold text-red-500"
+                        className="flex-1 h-11 rounded-xl bg-red-50 flex items-center justify-center gap-1 text-xs font-semibold text-red-500"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Supprimer
                       </button>

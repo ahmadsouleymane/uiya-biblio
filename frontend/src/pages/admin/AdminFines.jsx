@@ -77,7 +77,7 @@ export default function AdminFines() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       <Navbar />
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate("/admin")} className="w-10 h-10 rounded-full bg-surface flex items-center justify-center hover:bg-surface/80 transition-colors">
             <ArrowLeft className="w-5 h-5" />

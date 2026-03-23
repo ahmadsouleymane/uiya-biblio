@@ -1,5 +1,6 @@
 import { BookOpen, Mail, MapPin, Phone } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useTheme } from "../contexts/ThemeContext"
 
 const categories = [
   "Philosophie",
@@ -12,11 +13,15 @@ const categories = [
 
 export default function Footer() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
 
   return (
-    <footer className="mt-auto pb-20 md:pb-0" style={{ background: "#040848" }}>
+    <footer className="mt-auto pb-28 md:pb-0" style={{
+      background: theme === "dark" ? "#100c0c" : "#040848",
+      borderTop: theme === "dark" ? "1px solid rgba(167,30,60,0.15)" : "none",
+    }}>
       {/* Main content */}
-      <div className="max-w-6xl mx-auto px-5 pt-12 pb-8">
+      <div className="w-full px-4 pt-12 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
 
           {/* Brand */}
@@ -92,7 +97,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <div className="max-w-6xl mx-auto px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="w-full px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-white/30 text-xs">© {new Date().getFullYear()} Tous droits réservés - Fait par <a className="text-secondary font-bold cursor-pointer">AHMAD</a> </p>
         </div>
       </div>

@@ -1,10 +1,10 @@
 import cron from "node-cron";
 import Loan from "../models/loan.model.js";
-import Reservation from "../models/reservation.model.js";
 import LibrarySettings from "../models/librarySettings.model.js";
-import Fine from "../models/fine.model.js";
 import Notification from "../models/notification.model.js";
 import { sendLoanReminderEmail, sendLoanOverdueEmail } from "./email.js";
+
+const FINE_RATE = 500; // FCFA par jour
 
 export const startScheduler = () => {
   // Chaque jour à 9h00
@@ -41,19 +41,12 @@ export const startScheduler = () => {
             message: `Rappel : "${loan.book.title}" doit être rendu dans 2 jours.`,
             link: "/profile",
           });
-        } else if (daysDiff <= 0 && loan.status !== "late") {
-          // Nouveau retard — créer amende si elle n'existe pas encore
-          const daysLate = Math.abs(daysDiff);
-          const existingFine = await Fine.findOne({ loan: loan._id });
-          if (!existingFine) {
-            const amount = daysLate * settings.fineRatePerDay;
-            await Fine.create({
-              loan: loan._id,
-              user: loan.user._id,
-              amount,
-              daysLate,
-              reason: `Retard de ${daysLate} jour(s) (détecté automatiquement)`,
-            });
+        } else if (daysDiff <= 0) {
+          // Retard — marquer late + email si pas encore notifié
+          if (loan.status !== "late") {
+            await Loan.findByIdAndUpdate(loan._id, { status: "late" });
+            const daysLate = Math.abs(daysDiff);
+            const amount = daysLate * FINE_RATE;
             try {
               await sendLoanOverdueEmail(loan.user.email, loan.user.fullName, loan.book.title, daysLate, amount);
             } catch (e) {
@@ -62,21 +55,12 @@ export const startScheduler = () => {
             await Notification.create({
               user: loan.user._id,
               type: "loan_late",
-              message: `"${loan.book.title}" est en retard de ${daysLate} jour(s). Une amende de ${amount} FCFA a été générée.`,
+              message: `"${loan.book.title}" est en retard de ${daysLate} jour(s). Une amende de ${amount} FCFA sera appliquée au retour.`,
               link: "/profile",
             });
           }
-
-          await Loan.findByIdAndUpdate(loan._id, { status: "late" });
         }
       }
-
-      // Expirer les réservations "available" depuis plus de 48h
-      const expireThreshold = new Date(now - 48 * 60 * 60 * 1000);
-      await Reservation.updateMany(
-        { status: "available", notifiedAt: { $lt: expireThreshold } },
-        { status: "expired" }
-      );
 
       console.log("[Scheduler] Vérification terminée.");
     } catch (err) {

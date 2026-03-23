@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   BookOpen, Users, ArrowLeftRight, CalendarCheck,
   AlertCircle, CheckCircle, TrendingUp, Clock,
-  Download, FileText, Banknote, BookMarked, Settings, Shield, Upload,
+  Download, FileText, Settings, Shield, Upload,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -14,6 +14,7 @@ import Footer from "../components/footer"
 import { getAdminStats, exportPdf as exportPdfApi } from "../api/stats"
 import { apiFetch } from "../api/_fetch"
 import { useUser } from "../contexts/AuthContext"
+import { useTheme } from "../contexts/ThemeContext"
 import toast from "react-hot-toast"
 
 // ── Tooltip personnalisé ────────────────────────────────────────────
@@ -86,6 +87,10 @@ const EXPORT_TYPES = [
 export default function Admin() {
   const { user } = useUser()
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
+  const chartColor = dark ? "#d42040" : "#040848"
+  const chartAlpha = dark ? "rgba(212,32,64," : "rgba(4,8,72,"
   const [stats, setStats]       = useState(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(false)
@@ -160,7 +165,7 @@ export default function Admin() {
     { icon: <Users className="w-5 h-5" />,          value: stats.totalUsers,     label: "Utilisateurs",            iconBg: "rgba(124,58,237,0.10)", iconColor: "#7c3aed" },
     { icon: <ArrowLeftRight className="w-5 h-5" />, value: stats.activeLoans,    label: "Emprunts actifs",         iconBg: "rgba(234,88,12,0.10)",  iconColor: "#ea580c" },
     { icon: <AlertCircle className="w-5 h-5" />,    value: stats.lateLoans,      label: "Emprunts en retard",      iconBg: "rgba(225,29,72,0.10)",  iconColor: "#e11d48" },
-    { icon: <CalendarCheck className="w-5 h-5" />,  value: stats.todayPresence,  label: "Présences aujourd'hui",   iconBg: "rgba(4,8,72,0.08)",     iconColor: "#040848" },
+    { icon: <CalendarCheck className="w-5 h-5" />,  value: stats.todayPresence,  label: "Présences aujourd'hui",   iconBg: dark ? "rgba(212,32,64,0.08)" : "rgba(4,8,72,0.08)", iconColor: chartColor },
   ] : []
 
   return (
@@ -168,14 +173,14 @@ export default function Admin() {
       <Navbar />
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
-        <div className="max-w-6xl mx-auto px-4 py-10">
+      <div style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
+        <div className="w-full px-4 py-10">
           <p className="overline-white mb-1">Administration</p>
           <h1 className="text-3xl md:text-4xl font-black">Bonjour, {user?.fullName?.split(" ")[0]} 👋</h1>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-10 pb-20">
+      <div className="w-full px-4 py-8 space-y-10 pb-20">
 
         {/* ── Vue d'ensemble ─────────────────────────────────────── */}
         <div>
@@ -218,8 +223,8 @@ export default function Admin() {
                   label: "Total emprunts historique",
                   value: stats.totalLoansAllTime,
                   icon: <TrendingUp className="w-4 h-4" />,
-                  color: "#040848",
-                  bg: "rgba(4,8,72,0.08)",
+                  color: chartColor,
+                  bg: `${chartAlpha}0.08)`,
                 },
                 {
                   label: "Taux de retard",
@@ -267,8 +272,8 @@ export default function Admin() {
                     <AreaChart data={stats.loansByMonth} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="gradEmp" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#040848" stopOpacity={0.18} />
-                          <stop offset="100%" stopColor="#040848" stopOpacity={0} />
+                          <stop offset="0%" stopColor={chartColor} stopOpacity={0.18} />
+                          <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="gradRet" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#e11d48" stopOpacity={0.18} />
@@ -279,7 +284,7 @@ export default function Admin() {
                       <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
                       <Tooltip content={<ChartTooltip />} />
                       <Area type="monotone" dataKey="emprunts" name="Emprunts"
-                        stroke="#040848" strokeWidth={2.5} fill="url(#gradEmp)" dot={{ r: 3, fill: "#040848" }} />
+                        stroke={chartColor} strokeWidth={2.5} fill="url(#gradEmp)" dot={{ r: 3, fill: chartColor }} />
                       <Area type="monotone" dataKey="retards" name="Retards"
                         stroke="#e11d48" strokeWidth={2} strokeDasharray="4 2" fill="url(#gradRet)" dot={{ r: 3, fill: "#e11d48" }} />
                     </AreaChart>
@@ -288,7 +293,7 @@ export default function Admin() {
                   <div className="h-48 flex items-center justify-center text-sm" style={{ color: "var(--muted)" }}>Pas encore de données</div>
                 )}
                 <div className="flex gap-4 mt-2 justify-center">
-                  {[{ color: "#040848", label: "Emprunts" }, { color: "#e11d48", label: "Retards" }].map((l, i) => (
+                  {[{ color: chartColor, label: "Emprunts" }, { color: "#e11d48", label: "Retards" }].map((l, i) => (
                     <div key={i} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
                       <span className="w-3 h-0.5 rounded inline-block" style={{ background: l.color }} /> {l.label}
                     </div>
@@ -313,12 +318,12 @@ export default function Admin() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-primary truncate">{book.title}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(4,8,72,0.08)" }}>
+                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: `${chartAlpha}0.08)` }}>
                               <div
                                 className="h-full rounded-full"
                                 style={{
                                   width: `${Math.round((book.count / stats.topBooks[0].count) * 100)}%`,
-                                  background: i === 0 ? "#040848" : `rgba(4,8,72,${0.5 - i * 0.07})`,
+                                  background: i === 0 ? chartColor : `${chartAlpha}${0.5 - i * 0.07})`,
                                 }}
                               />
                             </div>
@@ -385,7 +390,7 @@ export default function Admin() {
                       <Tooltip content={<ChartTooltip />} />
                       <Bar dataKey="value" name="Livres" radius={[0, 6, 6, 0]}>
                         {stats.booksPerCategory.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? "#040848" : `rgba(4,8,72,${Math.max(0.15, 0.7 - i * 0.08)})`} />
+                          <Cell key={i} fill={i === 0 ? chartColor : `${chartAlpha}${Math.max(0.15, 0.7 - i * 0.08)})`} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -406,7 +411,7 @@ export default function Admin() {
 
             {/* Description */}
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(4,8,72,0.06)", color: "#040848" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${chartAlpha}0.06)`, color: chartColor }}>
                 <FileText className="w-5 h-5" />
               </div>
               <div>
@@ -545,11 +550,9 @@ export default function Admin() {
           <p className="overline mb-4">Gestion avancée</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
-              { label: "Amendes",      desc: "Retards impayés",    icon: <Banknote className="w-5 h-5" />,    color: "#e11d48", bg: "rgba(225,29,72,0.08)",    path: "/admin/amendes" },
-              { label: "Réservations", desc: "File d'attente",     icon: <BookMarked className="w-5 h-5" />, color: "#059669", bg: "rgba(5,150,105,0.08)",    path: "/admin/reservations" },
               { label: "Import CSV",   desc: "Livres & utilisateurs", icon: <Upload className="w-5 h-5" />,  color: "#2563eb", bg: "rgba(37,99,235,0.08)",    path: "/admin/import" },
               { label: "Paramètres",   desc: "Configuration",     icon: <Settings className="w-5 h-5" />,   color: "#7c3aed", bg: "rgba(124,58,237,0.08)",   path: "/admin/parametres" },
-              { label: "Audit",        desc: "Journal d'actions", icon: <Shield className="w-5 h-5" />,     color: "#040848", bg: "rgba(4,8,72,0.08)",        path: "/admin/audit" },
+              { label: "Audit",        desc: "Journal d'actions", icon: <Shield className="w-5 h-5" />,     color: chartColor, bg: `${chartAlpha}0.08)`,    path: "/admin/audit" },
             ].map((item, i) => (
               <button key={i} onClick={() => navigate(item.path)}
                 className="card p-4 flex flex-col items-start gap-3 hover:shadow-md transition-all text-left">

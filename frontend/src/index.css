@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
+/* Enable dark: prefix with class-based dark mode */
+@custom-variant dark (&:is(.dark *));
+
 /* ─────────────────────────────────────────────────────────────────
    DESIGN TOKENS
 ───────────────────────────────────────────────────────────────── */
@@ -19,6 +22,7 @@
 :root {
   --bg: #F4F6FF;
   --surface: #ffffff;
+  --surface-alt: #f9fafb;
   --fg: #040848;
   --muted: #64748b;
   --border: rgba(4, 8, 72, 0.07);
@@ -28,30 +32,76 @@
   --input-focus-bg: #ffffff;
   --search-bg: #ffffff;
   --row-hover: rgba(4, 8, 72, 0.018);
+  --accent-btn: #040848;
+  --gradient-header: linear-gradient(135deg, #040848 0%, #0a1260 100%);
+  --gradient-card:   linear-gradient(135deg, #040848 0%, #0e1a7a 100%);
+  --solid-header:    #040848;
 }
 .dark {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --fg: #e2e8f0;
-  --muted: #94a3b8;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-md: rgba(255, 255, 255, 0.14);
-  --shadow: rgba(0, 0, 0, 0.2);
-  --input-bg: #1e293b;
-  --input-focus-bg: #273449;
-  --search-bg: #1e293b;
-  --row-hover: rgba(255, 255, 255, 0.04);
+  /* ── Fonds ── */
+  --bg:          #0b0909;   /* noir chaud profond */
+  --surface:     #141010;   /* surface cartes */
+  --surface-alt: #1c1616;   /* section alternée */
+
+  /* ── Texte ── */
+  --fg:    #f0ebe8;   /* blanc chaud, papier sombre */
+  --muted: #7a6a65;   /* gris-brun désaturé */
+
+  /* ── Bordures & ombres ── */
+  --border:    rgba(167, 30, 60, 0.10);  /* bordure teintée rouge */
+  --border-md: rgba(167, 30, 60, 0.20);  /* bordure plus visible */
+  --shadow:    rgba(0, 0, 0, 0.70);
+
+  /* ── Inputs ── */
+  --input-bg:       #141010;
+  --input-focus-bg: #1c1616;
+  --search-bg:      #141010;
+
+  /* ── Hover ── */
+  --row-hover: rgba(167, 30, 60, 0.07);  /* hover teinté rouge */
+
+  /* ── Accent exclusif : secondary crimson boosté ── */
+  --accent-btn:       #d42040;
+  --gradient-header:  linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%);
+  --gradient-card:    linear-gradient(135deg, #1c0a0e 0%, #2d0f1c 100%);
+  --solid-header:     #100c0c;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    BASE
 ───────────────────────────────────────────────────────────────── */
+html {
+  overflow-x: clip;
+  /* Empêche le scroll horizontal sans casser les enfants overflow-x-auto */
+}
+
 body {
   font-family: "Inter", sans-serif;
   background-color: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s, color 0.2s;
+  /* Supprime le highlight bleu au tap sur mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Évite la sélection de texte accidentelle */
+  -webkit-touch-callout: none;
+}
+
+/* Supprime le délai de 300ms sur tous les éléments interactifs */
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Assure un minimum de 44px pour les zones tactiles */
+button {
+  cursor: pointer;
+}
+
+/* Prévient le zoom automatique sur iOS pour TOUS les inputs/selects/textareas */
+input, select, textarea {
+  font-size: 1rem;
+  touch-action: manipulation;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -59,6 +109,19 @@ body {
 ───────────────────────────────────────────────────────────────── */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Scroll fluide sur mobile (momentum scrolling iOS) */
+.overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding utilitaire */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
 
 /* ─────────────────────────────────────────────────────────────────
    DESIGN SYSTEM — COMPONENT CLASSES
@@ -97,11 +160,13 @@ body {
     background: var(--input-bg);
     border: 1px solid var(--border-md);
     border-radius: 0.75rem;
-    font-size: 0.875rem;
+    /* 1rem (16px) minimum pour éviter le zoom auto sur iOS */
+    font-size: 1rem;
     color: var(--fg);
     outline: none;
     transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     -webkit-appearance: none;
+    touch-action: manipulation;
   }
   .input::placeholder { color: var(--muted); }
   .input:focus {
@@ -128,11 +193,13 @@ body {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 0.875rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: #ffffff;
     outline: none;
     width: 100%;
     transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    touch-action: manipulation;
   }
   .input-dark::placeholder { color: rgba(255, 255, 255, 0.35); }
   .input-dark:focus {
@@ -155,9 +222,13 @@ body {
     cursor: pointer;
     white-space: nowrap;
     transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* Hauteur minimale 44px pour zone tactile (déjà 44px = 2.75rem) */
+    min-height: 44px;
   }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn:active:not(:disabled) { transform: scale(0.98); }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
 
   .btn-primary {
     background: #040848;
@@ -366,11 +437,14 @@ body {
     background: var(--search-bg);
     border: 1px solid var(--border-md);
     border-radius: 0.875rem;
-    font-size: 0.875rem;
+    /* 1rem (16px) min pour éviter zoom iOS */
+    font-size: 1rem;
     color: var(--fg);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     box-shadow: 0 1px 3px var(--shadow);
+    -webkit-appearance: none;
+    touch-action: manipulation;
   }
   .search-input::placeholder { color: var(--muted); }
   .search-input:focus {
@@ -417,10 +491,84 @@ body {
     border-radius: 0.75rem;
   }
   .dark .skeleton {
-    background: linear-gradient(90deg, #1e293b 25%, #273449 50%, #1e293b 75%);
+    background: linear-gradient(90deg, #141010 25%, #1c1616 50%, #141010 75%);
     background-size: 200% 100%;
   }
+
+  /* ── Section alternée (remplace bg-gray-50) ──────────────────── */
+  .section-alt {
+    background: var(--surface-alt);
+  }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   DARK MODE — OVERRIDES (accent = secondary crimson #d42040)
+───────────────────────────────────────────────────────────────── */
+
+/* Texte primaire : navy invisible en dark → blanc chaud */
+.dark .text-primary    { color: var(--fg) !important; }
+.dark .text-foreground { color: var(--fg) !important; }
+/* Opacité réduite pour les variants primary/60 etc. */
+.dark .text-primary\/60 { color: rgba(240, 235, 232, 0.55) !important; }
+
+/* ── Boutons ── */
+.dark .btn-primary {
+  background: var(--accent-btn);
+  box-shadow: 0 2px 16px rgba(212, 32, 64, 0.35);
+}
+.dark .btn-primary:hover:not(:disabled) {
+  background: #e8213e;
+  box-shadow: 0 4px 24px rgba(212, 32, 64, 0.55);
+  opacity: 1;
+}
+
+/* ── Tabs & toggles ── */
+.dark .tab-pill-active       { background: var(--accent-btn); border-color: var(--accent-btn); }
+.dark .toggle-btn-active     { background: var(--accent-btn); }
+
+/* ── Inputs focus → rouge crimson ── */
+.dark .input:focus {
+  border-color: var(--accent-btn);
+  box-shadow: 0 0 0 3px rgba(212, 32, 64, 0.18);
+}
+.dark .search-input:focus {
+  border-color: var(--accent-btn);
+  box-shadow: 0 0 0 3px rgba(212, 32, 64, 0.18);
+}
+
+/* ── Badges dark → palettes chaudes sur fond sombre ── */
+.dark .badge-green   { background: rgba(74, 222, 128, 0.10);  color: #4ade80; }
+.dark .badge-red     { background: rgba(212, 32,  64, 0.15);  color: #f87191; }
+.dark .badge-blue    { background: rgba(96,  165, 250, 0.10); color: #7eb8f7; }
+.dark .badge-orange  { background: rgba(251, 146,  60, 0.10); color: #fb923c; }
+.dark .badge-yellow  { background: rgba(251, 191,  36, 0.10); color: #fbbf24; }
+.dark .badge-gray    { background: rgba(122, 106, 101, 0.18); color: #a89690; }
+.dark .badge-purple  { background: rgba(192, 132, 252, 0.10); color: #c084fc; }
+.dark .badge-primary { background: rgba(212,  32,  64, 0.15); color: #f87191; }
+
+/* ── Steps ── */
+.dark .step-active   { background: var(--accent-btn); }
+.dark .step-inactive { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+
+/* ── Avatar ── */
+.dark .avatar { background: var(--accent-btn); }
+
+/* ── Cards hover : lueur rouge subtile ── */
+.dark .card-hover:hover {
+  box-shadow: 0 4px 24px rgba(212, 32, 64, 0.12), 0 12px 48px rgba(0, 0, 0, 0.5);
+  border-color: rgba(167, 30, 60, 0.30);
+}
+
+/* ── Card : bordure rouge très subtile en dark ── */
+.dark .card,
+.dark .card-p {
+  border-color: rgba(167, 30, 60, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.dark .row-list {
+  border-color: rgba(167, 30, 60, 0.12);
+}
+.dark .row-item { border-color: rgba(167, 30, 60, 0.08); }
 
 /* ─────────────────────────────────────────────────────────────────
    ANIMATIONS
@@ -434,4 +582,57 @@ body {
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MOBILE — edge-to-edge (< 640px)
+   Tous les blocs de contenu principaux occupent toute la largeur.
+   Le container parent a px-4 (1rem), on compense avec -1rem.
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .row-list,
+  .empty-state,
+  .card-p {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  /* Le padding interne des card-p passe à 1rem sur mobile */
+  .card-p {
+    padding: 1rem;
+  }
+
+  /* row-item: réduire le padding horizontal */
+  .row-item {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Grille de livres : edge-to-edge + gap réduit */
+  .books-grid {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   VERY SMALL SCREENS (< 360px)
+   Ajustements pour les petits écrans (iPhone SE, Galaxy S, etc.)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 359px) {
+  /* Réduire le padding des containers */
+  .px-4 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .px-5 { padding-left: 1rem; padding-right: 1rem; }
+  .px-6 { padding-left: 1rem; padding-right: 1rem; }
+
+  /* Modals : padding réduit */
+  .p-6 { padding: 1rem; }
+
+  /* Texte : éviter les overflow */
+  h1, h2, h3 { word-break: break-word; }
 }

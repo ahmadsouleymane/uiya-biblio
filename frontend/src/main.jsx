@@ -31,8 +31,6 @@ import Activity from "./pages/activity"
 import QrPage from "./pages/QrPage"
 import ForgotPassword from "./pages/ForgotPassword"
 import ResetPassword from "./pages/ResetPassword"
-import AdminFines from "./pages/admin/AdminFines"
-import AdminReservations from "./pages/admin/AdminReservations"
 import AdminSettings from "./pages/admin/AdminSettings"
 import AdminAudit from "./pages/admin/AdminAudit"
 import AdminImport from "./pages/admin/AdminImport"
@@ -76,8 +74,6 @@ createRoot(document.getElementById("root")).render(
         <Route path="/admin/livres" element={<PrivateRoute roles={["admin"]}><AdminBooks /></PrivateRoute>} />
         <Route path="/admin/emprunts" element={<PrivateRoute roles={["admin"]}><AdminLoans /></PrivateRoute>} />
         <Route path="/admin/presence" element={<PrivateRoute roles={["admin"]}><AdminPresence /></PrivateRoute>} />
-        <Route path="/admin/amendes" element={<PrivateRoute roles={["admin"]}><AdminFines /></PrivateRoute>} />
-        <Route path="/admin/reservations" element={<PrivateRoute roles={["admin"]}><AdminReservations /></PrivateRoute>} />
         <Route path="/admin/parametres" element={<PrivateRoute roles={["admin"]}><AdminSettings /></PrivateRoute>} />
         <Route path="/admin/audit" element={<PrivateRoute roles={["admin"]}><AdminAudit /></PrivateRoute>} />
         <Route path="/admin/import" element={<PrivateRoute roles={["admin"]}><AdminImport /></PrivateRoute>} />

@@ -1,5 +1,4 @@
 import User from "../models/user.model.js";
-import Fine from "../models/fine.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import bcrypt from "bcryptjs";
 import QRCode from "qrcode";
@@ -390,12 +389,6 @@ export const getUserStats = async (req, res) => {
       byMonth[key] = (byMonth[key] || 0) + 1;
     }
 
-    const pendingFines = await Fine.countDocuments({ user: req.params.userId, status: "pending" });
-    const totalFineAmount = await Fine.aggregate([
-      { $match: { user: req.params.userId, status: "pending" } },
-      { $group: { _id: null, total: { $sum: "$amount" } } }
-    ]);
-
     res.status(200).json({
       totalLoans: loans.length,
       returnedLoans: returned.length,
@@ -403,8 +396,6 @@ export const getUserStats = async (req, res) => {
       lateLoans: late.length,
       favoriteCategory,
       byMonth,
-      pendingFines,
-      totalFineAmount: totalFineAmount[0]?.total || 0,
     });
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur" });

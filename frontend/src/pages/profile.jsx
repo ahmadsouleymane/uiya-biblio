@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   LogOut, BookOpen, Clock, CheckCircle, AlertCircle,
   X, Mail, Phone, GraduationCap, Hash,
-  Maximize2, CreditCard, Heart, BookMarked, TrendingUp, AlertTriangle, BarChart2,
+  Maximize2, CreditCard, Heart, TrendingUp, BarChart2,
 } from "lucide-react"
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -12,11 +12,10 @@ import { downloadCard } from "../utils/memberCard"
 import { useUser } from "../contexts/AuthContext"
 import { logout, getUserStats } from "../api/user"
 import { getUserLoans } from "../api/loan"
-import { getMyReservations, cancelReservation } from "../api/reservation"
 import { getFavorites, removeFavorite } from "../api/user"
-import { getUserFines } from "../api/fine"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
+import { useTheme } from "../contexts/ThemeContext"
 import toast from "react-hot-toast"
 
 const roleLabel = { student: "Étudiant", employee: "Employé", admin: "Administrateur" }
@@ -33,13 +32,6 @@ const STATUS = {
   late:     { label: "En retard", icon: <AlertCircle className="w-3 h-3" />,  color: "#e11d48", bg: "rgba(225,29,72,0.08)" },
 }
 
-const RESERVATION_STATUS = {
-  pending:   { label: "En attente", color: "#d97706", bg: "rgba(217,119,6,0.08)" },
-  available: { label: "Disponible", color: "#059669", bg: "rgba(5,150,105,0.08)" },
-  cancelled: { label: "Annulée",    color: "var(--muted)", bg: "rgba(148,163,184,0.08)" },
-  expired:   { label: "Expirée",    color: "#e11d48", bg: "rgba(225,29,72,0.08)" },
-}
-
 function dueDate(borrowDate, days = 14) {
   const d = new Date(borrowDate)
   d.setDate(d.getDate() + days)
@@ -52,9 +44,7 @@ export default function Profile() {
   const [loans, setLoans] = useState([])
   const [loadingLoans, setLoadingLoans] = useState(true)
   const [activeTab, setActiveTab] = useState("emprunts")
-  const [reservations, setReservations] = useState([])
   const [favorites, setFavorites] = useState([])
-  const [fines, setFines] = useState([])
   const [stats, setStats] = useState(null)
   const [loanDays, setLoanDays] = useState(14)
 
@@ -69,9 +59,7 @@ export default function Profile() {
       .then(data => setLoans(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setLoadingLoans(false))
-    getMyReservations().then(data => setReservations(Array.isArray(data) ? data : [])).catch(() => {})
     getFavorites().then(data => setFavorites(Array.isArray(data) ? data : [])).catch(() => {})
-    getUserFines(user._id).then(data => setFines(Array.isArray(data) ? data : [])).catch(() => {})
     getUserStats(user._id).then(data => setStats(data)).catch(() => {})
   }, [user])
 
@@ -80,14 +68,6 @@ export default function Profile() {
     setUser(null)
     navigate("/")
     toast.success("Déconnecté")
-  }
-
-  const handleCancelReservation = async (id) => {
-    try {
-      await cancelReservation(id)
-      setReservations(rs => rs.map(r => r._id === id ? { ...r, status: "cancelled" } : r))
-      toast.success("Réservation annulée")
-    } catch { toast.error("Erreur") }
   }
 
   const handleRemoveFavorite = async (bookId) => {
@@ -100,6 +80,8 @@ export default function Profile() {
 
   if (!user) return null
 
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const isAdmin = user.role === "admin"
   const initials = user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
   const rs = ROLE_STYLE[user.role] || ROLE_STYLE.student
@@ -107,15 +89,12 @@ export default function Profile() {
   const activeLoans  = loans.filter(l => l.status === "borrowed")
   const returnedLoans = loans.filter(l => l.status === "returned")
   const lateLoans    = loans.filter(l => l.status === "late")
-  const pendingFines = fines.filter(f => f.status === "pending")
-  const activeReservations = reservations.filter(r => ["pending", "available"].includes(r.status))
 
   const tabLoans = activeTab === "emprunts" ? [...lateLoans, ...activeLoans] : returnedLoans
 
   const TABS = [
     { key: "emprunts",       label: "En cours",     count: activeLoans.length + lateLoans.length },
     { key: "historique",     label: "Historique",   count: returnedLoans.length },
-    { key: "reservations",   label: "Réservations", count: activeReservations.length },
     { key: "favoris",        label: "Favoris",      count: favorites.length },
     { key: "statistiques",   label: "Statistiques", count: null },
   ]
@@ -136,27 +115,22 @@ export default function Profile() {
       <Navbar />
 
       {/* ── HEADER BANNER ── */}
-      <div style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
-        <div className="max-w-6xl mx-auto px-6 py-8">
+      <div style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
+        <div className="w-full px-4 sm:px-6 py-6 md:py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center text-white text-2xl lg:text-3xl font-black shadow-xl shrink-0" style={{ background: "#A71E3C" }}>
+              <div className="w-14 h-14 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center text-white text-xl lg:text-3xl font-black shadow-xl shrink-0" style={{ background: "#A71E3C" }}>
                 {initials}
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-xs font-black px-2.5 py-0.5 rounded-full" style={{ background: rs.bg, color: rs.color }}>
                     {roleLabel[user.role]}
                   </span>
-                  {pendingFines.length > 0 && (
-                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {pendingFines.length} amende(s)
-                    </span>
-                  )}
                 </div>
-                <h1 className="text-xl lg:text-2xl font-black text-white leading-tight">{user.fullName}</h1>
+                <h1 className="text-lg lg:text-2xl font-black text-white leading-tight truncate">{user.fullName}</h1>
                 {(user.department || user.year) && (
-                  <p className="text-white/45 text-sm mt-0.5">{user.department}{user.year ? ` · ${user.year}` : ""}</p>
+                  <p className="text-white/45 text-xs sm:text-sm mt-0.5 truncate">{user.department}{user.year ? ` · ${user.year}` : ""}</p>
                 )}
               </div>
             </div>
@@ -182,7 +156,7 @@ export default function Profile() {
       </div>
 
       {/* Stats mobile */}
-      <div className="lg:hidden max-w-6xl mx-auto px-6 py-4">
+      <div className="lg:hidden w-full px-4 sm:px-6 py-4">
         <div className="grid grid-cols-3 gap-3">
           {[
             { value: activeLoans.length + lateLoans.length, label: "En cours",  color: "#2563eb", bg: "rgba(37,99,235,0.08)" },
@@ -198,7 +172,7 @@ export default function Profile() {
       </div>
 
       {/* ── CONTENU PRINCIPAL ── */}
-      <div className="max-w-6xl mx-auto px-6 py-6 pb-20">
+      <div className="w-full px-4 sm:px-6 py-6 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
           {/* ── COLONNE GAUCHE ── */}
@@ -227,19 +201,11 @@ export default function Profile() {
                     <p className="font-bold text-primary text-sm">{stats.favoriteCategory}</p>
                   </div>
                 )}
-                {stats.pendingFines > 0 && (
-                  <div className="mt-3 rounded-xl p-3 bg-red-50 border border-red-100">
-                    <p className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {stats.pendingFines} amende(s) — {stats.totalFineAmount} FCFA
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
             {/* QR Code */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #040848 0%, #0e1a7a 100%)", border: "1px solid var(--border-md)" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2d0f1c 100%)" : "linear-gradient(135deg, #040848 0%, #0e1a7a 100%)", border: "1px solid var(--border-md)" }}>
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <div>
                   <p className="font-black text-white text-sm">Mon QR Code</p>
@@ -290,7 +256,7 @@ export default function Profile() {
                     { icon: <GraduationCap className="w-3.5 h-3.5" />, label: "Département", value: user.department },
                     user.year && { icon: <Hash className="w-3.5 h-3.5" />, label: "Année", value: user.year },
                   ].filter(Boolean).map((item, i, arr) => (
-                    <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < arr.length - 1 ? "1px solid rgba(4,8,72,0.05)" : "none" }}>
+                    <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none" }}>
                       <span style={{ color: "#cbd5e1" }}>{item.icon}</span>
                       <div className="min-w-0">
                         <p className="text-xs" style={{ color: "var(--muted)" }}>{item.label}</p>
@@ -312,21 +278,22 @@ export default function Profile() {
             <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
 
               {/* Tabs */}
-              <div className="flex items-center justify-between mb-5 overflow-x-auto gap-2">
-                <div className="flex gap-2 flex-nowrap">
+              <div className="flex items-center mb-5 -mx-1">
+                <div className="flex gap-1.5 flex-nowrap overflow-x-auto hide-scrollbar px-1 w-full">
                   {TABS.map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap"
-                      style={{ background: activeTab === tab.key ? "#040848" : "rgba(4,8,72,0.05)", color: activeTab === tab.key ? "#fff" : "var(--muted)" }}>
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0"
+                      style={{ background: activeTab === tab.key ? (dark ? "#d42040" : "#040848") : (dark ? "rgba(212,32,64,0.07)" : "rgba(4,8,72,0.05)"), color: activeTab === tab.key ? "#fff" : "var(--muted)" }}>
                       {tab.label}
-                      <span className="text-xs px-1.5 py-0.5 rounded-full font-black"
-                        style={{ background: activeTab === tab.key ? "rgba(255,255,255,0.2)" : "rgba(4,8,72,0.08)", color: activeTab === tab.key ? "#fff" : "var(--muted)" }}>
-                        {tab.count}
-                      </span>
+                      {tab.count !== null && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-black"
+                          style={{ background: activeTab === tab.key ? "rgba(255,255,255,0.2)" : (dark ? "rgba(212,32,64,0.1)" : "rgba(4,8,72,0.08)"), color: activeTab === tab.key ? "#fff" : "var(--muted)" }}>
+                          {tab.count}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
-                <BookOpen className="w-4 h-4 shrink-0" style={{ color: "#cbd5e1" }} />
               </div>
 
               {/* Emprunts en cours / historique */}
@@ -346,7 +313,7 @@ export default function Profile() {
                       const s = STATUS[loan.status] || STATUS.borrowed
                       return (
                         <div key={loan._id} className="flex gap-3 p-3 rounded-2xl cursor-pointer transition-all hover:shadow-sm"
-                          style={{ background: "var(--bg)", border: "1px solid rgba(4,8,72,0.05)" }}
+                          style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
                           onClick={() => loan.book?._id && navigate(`/book/${loan.book._id}`)}>
                           {loan.book?.cover ? (
                             <img src={loan.book.cover} alt={loan.book.title} className="w-12 h-16 object-cover rounded-xl shrink-0 shadow-sm" />
@@ -373,49 +340,6 @@ export default function Profile() {
                               </span>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              )}
-
-              {/* Réservations */}
-              {activeTab === "reservations" && (
-                reservations.length === 0 ? (
-                  <div className="flex flex-col items-center py-20" style={{ color: "var(--muted)" }}>
-                    <BookMarked className="w-12 h-12 mb-3 opacity-20" />
-                    <p className="font-semibold text-sm">Aucune réservation</p>
-                    <p className="text-xs mt-1">Réservez un livre indisponible pour être notifié par email</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {reservations.map(r => {
-                      const rs2 = RESERVATION_STATUS[r.status] || RESERVATION_STATUS.pending
-                      return (
-                        <div key={r._id} className="flex gap-3 p-3 rounded-2xl" style={{ background: "var(--bg)", border: "1px solid rgba(4,8,72,0.05)" }}>
-                          {r.book?.cover ? (
-                            <img src={r.book.cover} alt="" className="w-12 h-16 object-cover rounded-xl shrink-0 cursor-pointer"
-                              onClick={() => navigate(`/book/${r.book._id}`)} />
-                          ) : (
-                            <div className="w-12 h-16 rounded-xl shrink-0 flex items-center justify-center" style={{ background: "#e2e8f0" }}>
-                              <BookOpen className="w-4 h-4" style={{ color: "var(--muted)" }} />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                            <p className="font-black text-sm text-primary truncate">{r.book?.title || "Livre"}</p>
-                            <p className="text-xs" style={{ color: "var(--muted)" }}>
-                              {new Date(r.createdAt).toLocaleDateString("fr-FR")}
-                            </p>
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full self-start" style={{ background: rs2.bg, color: rs2.color }}>
-                              {rs2.label}
-                            </span>
-                          </div>
-                          {["pending", "available"].includes(r.status) && (
-                            <button onClick={() => handleCancelReservation(r._id)} className="w-10 h-10 rounded-full flex items-center justify-center self-center" style={{ background: "rgba(225,29,72,0.07)" }}>
-                              <X className="w-4 h-4" style={{ color: "#e11d48" }} />
-                            </button>
-                          )}
                         </div>
                       )
                     })}
@@ -464,7 +388,7 @@ export default function Profile() {
                 ) : (
                   <div className="space-y-5">
                     {/* Cartes stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                       {[
                         { label: "Livres lus",        value: stats.returnedLoans,   icon: <CheckCircle className="w-4 h-4" />, color: "#059669", bg: "rgba(5,150,105,0.1)" },
                         { label: "Catégorie favorite", value: stats.favoriteCategory || "—", icon: <BookOpen className="w-4 h-4" />,    color: "#2563eb", bg: "rgba(37,99,235,0.1)" },
@@ -484,7 +408,7 @@ export default function Profile() {
                     {/* Graphique mensuel */}
                     <div className="rounded-2xl p-4" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
                       <p className="text-sm font-black mb-4 flex items-center gap-2" style={{ color: "var(--fg)" }}>
-                        <BarChart2 className="w-4 h-4" style={{ color: "#040848" }} />
+                        <BarChart2 className="w-4 h-4" style={{ color: dark ? "#d42040" : "#040848" }} />
                         Emprunts des 6 derniers mois
                       </p>
                       {monthlyData.length === 0 ? (
@@ -497,8 +421,8 @@ export default function Profile() {
                           <AreaChart data={monthlyData} margin={{ top: 4, right: 0, bottom: 0, left: -20 }}>
                             <defs>
                               <linearGradient id="statsGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%"  stopColor="#040848" stopOpacity={0.18} />
-                                <stop offset="95%" stopColor="#040848" stopOpacity={0} />
+                                <stop offset="5%"  stopColor={dark ? "#d42040" : "#040848"} stopOpacity={0.18} />
+                                <stop offset="95%" stopColor={dark ? "#d42040" : "#040848"} stopOpacity={0} />
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -508,7 +432,7 @@ export default function Profile() {
                               contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "0.75rem", fontSize: "12px", color: "var(--fg)" }}
                               formatter={(v) => [`${v} emprunt${v > 1 ? "s" : ""}`, ""]}
                             />
-                            <Area type="monotone" dataKey="emprunts" stroke="#040848" strokeWidth={2} fill="url(#statsGrad)" dot={{ r: 3, fill: "#040848" }} />
+                            <Area type="monotone" dataKey="emprunts" stroke={dark ? "#d42040" : "#040848"} strokeWidth={2} fill="url(#statsGrad)" dot={{ r: 3, fill: dark ? "#d42040" : "#040848" }} />
                           </AreaChart>
                         </ResponsiveContainer>
                       )}
@@ -519,12 +443,12 @@ export default function Profile() {
                       <div className="rounded-2xl p-4" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>Livres lus</p>
-                          <p className="text-sm font-black" style={{ color: "#040848" }}>{readProgress}%</p>
+                          <p className="text-sm font-black" style={{ color: dark ? "#d42040" : "#040848" }}>{readProgress}%</p>
                         </div>
                         <div className="w-full h-3 rounded-full" style={{ background: "var(--border-md)" }}>
                           <div
                             className="h-3 rounded-full transition-all duration-500"
-                            style={{ width: `${readProgress}%`, background: "linear-gradient(90deg, #040848, #A71E3C)" }}
+                            style={{ width: `${readProgress}%`, background: dark ? "#d42040" : "linear-gradient(90deg, #040848, #A71E3C)" }}
                           />
                         </div>
                         <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>

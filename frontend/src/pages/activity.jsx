@@ -5,6 +5,7 @@ import { useUser } from "../contexts/AuthContext"
 import { getEvents, addEvent, deleteEvent, getRegistrations, registerForEvent, unregisterFromEvent } from "../api/event"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
+import { useTheme } from "../contexts/ThemeContext"
 import toast from "react-hot-toast"
 
 const EMPTY_FORM = { title: "", date: "", location: "", description: "" }
@@ -22,6 +23,8 @@ function isPast(dateStr) {
 export default function Activity() {
   const { user } = useUser()
   const navigate = useNavigate()
+  const { theme } = useTheme()
+  const dark = theme === "dark"
   const isAdmin = user?.role === "admin"
 
   const [events, setEvents] = useState([])
@@ -145,8 +148,8 @@ export default function Activity() {
       <Navbar />
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
-        <div className="max-w-5xl mx-auto px-4 pt-10 pb-8">
+      <div style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
+        <div className="w-full px-4 pt-10 pb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
@@ -188,7 +191,7 @@ export default function Activity() {
             onClick={e => e.stopPropagation()}
           >
             {/* Poster */}
-            <div className="md:w-1/2 shrink-0 relative h-52 md:h-auto md:self-stretch" style={{ background: "#f1f3f9" }}>
+            <div className="md:w-1/2 shrink-0 relative h-44 sm:h-52 md:h-auto md:self-stretch" style={{ background: "#f1f3f9" }}>
               <img
                 src={selected.poster}
                 alt={selected.title}
@@ -235,7 +238,7 @@ export default function Activity() {
                   className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all mb-4"
                   style={isRegistered
                     ? { background: "rgba(34,197,94,0.10)", color: "#16a34a", border: "1.5px solid rgba(34,197,94,0.25)" }
-                    : { background: "#040848", color: "#fff" }
+                    : { background: dark ? "#d42040" : "#040848", color: "#fff" }
                   }
                 >
                   {registering
@@ -252,7 +255,7 @@ export default function Activity() {
                   {/* Inscrits */}
                   <div className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
                     <div className="flex items-center gap-2 mb-3">
-                      <Users className="w-4 h-4" style={{ color: "#040848" }} />
+                      <Users className="w-4 h-4" style={{ color: dark ? "#d42040" : "#040848" }} />
                       <p className="font-black text-primary text-sm">
                         Inscrits {!loadingRegs && `(${registrations.length})`}
                       </p>
@@ -270,7 +273,7 @@ export default function Activity() {
                       <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                         {registrations.map(u => (
                           <div key={u._id} className="flex items-start gap-3 px-3 py-2.5 rounded-xl" style={{ background: "rgba(4,8,72,0.03)" }}>
-                            <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-black" style={{ background: "#040848" }}>
+                            <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-black" style={{ background: dark ? "#d42040" : "#040848" }}>
                               {u.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -416,7 +419,7 @@ export default function Activity() {
                 type="submit"
                 disabled={saving}
                 className="w-full py-3 rounded-xl text-sm font-black transition-opacity"
-                style={{ background: "#040848", color: "#fff", opacity: saving ? 0.6 : 1 }}
+                style={{ background: dark ? "#d42040" : "#040848", color: "#fff", opacity: saving ? 0.6 : 1 }}
               >
                 {saving ? "Enregistrement…" : "Ajouter l'activité"}
               </button>
@@ -426,7 +429,7 @@ export default function Activity() {
       )}
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8 pb-20">
+      <div className="w-full px-4 py-8 pb-20">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array(6).fill(0).map((_, i) => (
