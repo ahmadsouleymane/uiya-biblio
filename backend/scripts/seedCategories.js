@@ -8,7 +8,10 @@ const categorySchema = new mongoose.Schema({
 });
 const Category = mongoose.model("Category", categorySchema);
 
-const CATEGORIES = [
+const bookSchema = new mongoose.Schema({ category: String }, { strict: false });
+const Book = mongoose.model("Book", bookSchema);
+
+const DEFAULTS = [
   "Droit",
   "Sciences économiques et de gestion",
   "Philosophie",
@@ -25,7 +28,11 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB");
 
-  for (const name of CATEGORIES) {
+  // Récupérer les catégories utilisées par les livres existants
+  const bookCategories = await Book.distinct("category");
+  const all = [...new Set([...DEFAULTS, ...bookCategories.filter(Boolean)])];
+
+  for (const name of all) {
     const exists = await Category.findOne({ name });
     if (!exists) {
       await Category.create({ name });
@@ -35,7 +42,7 @@ async function seed() {
     }
   }
 
-  console.log("Done!");
+  console.log(`Done! ${all.length} catégories synchronisées.`);
   process.exit(0);
 }
 
