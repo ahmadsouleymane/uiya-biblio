@@ -39,9 +39,11 @@ export default function UserProvider({ children }) {
     getMe()
       .then((data) => {
         if (data?._id) setUser(data)
-        else setUser(null) // session expirée côté serveur
+        // Pas de _id mais on a un cache → on garde le cache (cookie pas encore envoyé, erreur réseau, etc.)
+        // On ne déconnecte que si on n'a pas de cache
+        else if (!cached) setUser(null)
       })
-      .catch(() => { /* offline ou timeout → on garde le cache, on ne touche pas à user */ })
+      .catch(() => { /* offline ou timeout → on garde le cache */ })
       .finally(() => setLoading(false))
   }, [])
 
