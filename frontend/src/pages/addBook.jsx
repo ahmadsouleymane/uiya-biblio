@@ -50,6 +50,7 @@ export default function AddBook() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [serverError, setServerError] = useState(null)
 
   // ── Barcode scanner ──────────────────────────────────────────────
   useEffect(() => {
@@ -182,8 +183,8 @@ export default function AddBook() {
       })
       if (data.book) { setStep("done") }
       else toast.error(data.message || "Erreur lors de l'ajout")
-    } catch {
-      toast.error("Erreur serveur")
+    } catch (err) {
+      setServerError(err?.message || String(err))
     } finally {
       setLoading(false)
     }
@@ -322,9 +323,14 @@ export default function AddBook() {
 
                 <Field k="digitalUrl" placeholder="URL ressource numérique (optionnel)" form={form} errors={errors} setField={setField} />
 
-                <button onClick={handleSave} disabled={loading} className="btn btn-primary btn-lg w-full mt-2">
+                <button onClick={() => { setServerError(null); handleSave() }} disabled={loading} className="btn btn-primary btn-lg w-full mt-2">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sauvegarder le livre"}
                 </button>
+                {serverError && (
+                  <div style={{ background: "#fef2f2", border: "1px solid #e11d48", borderRadius: 8, padding: 12, marginTop: 8, wordBreak: "break-all", fontSize: 13, color: "#b91c1c" }}>
+                    <strong>Erreur serveur :</strong> {serverError}
+                  </div>
+                )}
               </div>
 
               {/* Couverture — sidebar droite */}
