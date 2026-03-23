@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 const API = import.meta.env.VITE_API_URL + "/presence"
-const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
+const opts = { headers: { "Content-Type": "application/json" } }
 
 export const checkIn = (userId) =>
   apiFetch(`${API}/checkin`, { ...opts, method: "POST", body: JSON.stringify({ userId }) }).then(r => r.json())

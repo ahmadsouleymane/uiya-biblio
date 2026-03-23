@@ -32,6 +32,7 @@ export const addBook = async (req, res) => {
       condition: condition || 'bon',
       location,
       digitalUrl,
+      addedBy: req.user._id,
     });
 
     return res.status(201).json({ message: "Livre ajouté avec succès", book });
@@ -171,7 +172,8 @@ export const deleteBook = async (req, res) => {
 
 export const getRecommendations = async (req, res) => {
   try {
-    const token = req.cookies?.token;
+    const auth = req.headers.authorization;
+    const token = auth?.startsWith("Bearer ") ? auth.slice(7) : req.cookies?.token;
     if (!token) return res.status(200).json([]);
 
     let userId;

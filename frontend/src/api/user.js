@@ -1,15 +1,21 @@
-import { apiFetch } from "./_fetch"
+import { apiFetch, setToken } from "./_fetch"
 const API = import.meta.env.VITE_API_URL + "/user"
-const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
+const opts = { headers: { "Content-Type": "application/json" } }
 
 export const addUser = (data) =>
-  apiFetch(`${API}/addUser`, { ...opts, method: "POST", body: JSON.stringify(data) }).then(r => r.json())
+  apiFetch(`${API}/addUser`, { ...opts, method: "POST", body: JSON.stringify(data) })
+    .then(r => r.json())
+    .then(data => { if (data.token) setToken(data.token); return data })
 
 export const login = (phone, password) =>
-  apiFetch(`${API}/login`, { ...opts, method: "POST", body: JSON.stringify({ phone, password }) }).then(r => r.json())
+  apiFetch(`${API}/login`, { ...opts, method: "POST", body: JSON.stringify({ phone, password }) })
+    .then(r => r.json())
+    .then(data => { if (data.token) setToken(data.token); return data })
 
 export const logout = () =>
-  apiFetch(`${API}/logout`, { ...opts, method: "POST" }).then(r => r.json())
+  apiFetch(`${API}/logout`, { ...opts, method: "POST" })
+    .then(r => r.json())
+    .then(data => { setToken(null); return data })
 
 export const getMe = () =>
   apiFetch(`${API}/me`, { ...opts, method: "GET" }).then(r => r.json())
@@ -50,5 +56,5 @@ export const getUserStats = (userId) =>
 export const importUsersCsv = (file) => {
   const formData = new FormData()
   formData.append("file", file)
-  return apiFetch(`${API}/import-csv`, { method: "POST", credentials: "include", body: formData }).then(r => r.json())
+  return apiFetch(`${API}/import-csv`, { method: "POST", body: formData }).then(r => r.json())
 }

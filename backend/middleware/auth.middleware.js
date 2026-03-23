@@ -1,9 +1,15 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 
+function extractToken(req) {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith('Bearer ')) return auth.slice(7);
+  return req.cookies?.token || null;
+}
+
 export const protect = (roles = []) => async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = extractToken(req);
     if (!token) return res.status(401).json({ message: 'Non authentifié' });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 const API = import.meta.env.VITE_API_URL + "/category"
-const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
+const opts = { headers: { "Content-Type": "application/json" } }
 
 export const getCategories = () =>
   apiFetch(API, { ...opts, method: "GET" }).then(r => r.json())

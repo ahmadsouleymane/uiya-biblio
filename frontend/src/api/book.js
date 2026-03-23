@@ -1,7 +1,7 @@
 import { apiFetch } from "./_fetch"
 import { cacheSet, cacheGet } from "../utils/cache"
 const API = import.meta.env.VITE_API_URL + "/book"
-const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
+const opts = { headers: { "Content-Type": "application/json" } }
 
 export const addBook = (data) =>
   apiFetch(`${API}/addBook`, { ...opts, method: "POST", body: JSON.stringify(data) }).then(r => r.json())
@@ -39,5 +39,5 @@ export const getRecommendations = () =>
 export const importBooksCsv = (file) => {
   const formData = new FormData()
   formData.append("file", file)
-  return apiFetch(`${API}/import-csv`, { method: "POST", credentials: "include", body: formData }).then(r => r.json())
+  return apiFetch(`${API}/import-csv`, { method: "POST", body: formData }).then(r => r.json())
 }

@@ -6,7 +6,9 @@ const loanSchema = new mongoose.Schema({
   borrowDate: { type: Date, default: Date.now },
   returnDate: { type: Date },
   status: { type: String, enum: ['borrowed', 'returned', 'late'], default: 'borrowed' },
-  renewCount: { type: Number, default: 0 }
+  renewCount: { type: Number, default: 0 },
+  performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  returnedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
 const Loan = mongoose.model('Loan', loanSchema);

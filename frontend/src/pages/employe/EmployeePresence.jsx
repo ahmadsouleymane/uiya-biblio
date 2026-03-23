@@ -148,6 +148,11 @@ export default function EmployeePresence() {
                         Entrée {new Date(p.checkIn).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                         {p.checkOut && ` · Sortie ${new Date(p.checkOut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
                       </p>
+                      {p.scannedBy && (
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>
+                          Par : <span className="font-medium">{p.scannedBy.fullName}</span>
+                        </p>
+                      )}
                     </div>
                     {p.checkOut ? (
                       <span className="badge badge-gray">Sorti</span>

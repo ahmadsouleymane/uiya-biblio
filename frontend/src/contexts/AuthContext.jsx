@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { getMe } from "../api/user"
+import { getToken, setToken } from "../api/_fetch"
 
 export const UserContext = createContext()
 export const useUser = () => useContext(UserContext)
@@ -17,6 +18,7 @@ function saveCache(u) {
     localStorage.removeItem(CACHE_KEY)
     localStorage.removeItem("biblio_qr")
     localStorage.removeItem("biblio_qr_name")
+    setToken(null)
   }
 }
 
@@ -27,7 +29,6 @@ function loadCache() {
 export default function UserProvider({ children }) {
   const cached = loadCache()
   const [user, setUserState] = useState(cached)
-  // Si on a un cache, on ne bloque pas le rendu — on rafraîchit en arrière-plan
   const [loading, setLoading] = useState(!cached)
 
   const setUser = (u) => {
@@ -36,11 +37,16 @@ export default function UserProvider({ children }) {
   }
 
   useEffect(() => {
+    // Pas de token → pas de session → on garde le cache si offline
+    if (!getToken()) {
+      if (cached) setUser(null)
+      setLoading(false)
+      return
+    }
+
     getMe()
       .then((data) => {
         if (data?._id) setUser(data)
-        // Pas de _id mais on a un cache → on garde le cache (cookie pas encore envoyé, erreur réseau, etc.)
-        // On ne déconnecte que si on n'a pas de cache
         else if (!cached) setUser(null)
       })
       .catch(() => { /* offline ou timeout → on garde le cache */ })

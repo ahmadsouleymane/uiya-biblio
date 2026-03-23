@@ -7,14 +7,8 @@ import crypto from "crypto";
 import { sendResetPasswordEmail, sendWelcomeEmail } from "../utils/email.js";
 import { parse } from "csv-parse/sync";
 
-const signAndSendToken = (res, user) => {
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+const generateToken = (user) => {
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 export const addUser = async (req, res) => {
@@ -56,12 +50,12 @@ export const addUser = async (req, res) => {
       console.error("Erreur email bienvenue:", err)
     );
 
-    signAndSendToken(res, user);
+    const token = generateToken(user);
 
     const userWithoutPassword = { ...user._doc };
     delete userWithoutPassword.password;
 
-    res.status(201).json(userWithoutPassword);
+    res.status(201).json({ ...userWithoutPassword, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erreur lors de la création de l'utilisateur" });
@@ -80,12 +74,12 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Identifiants incorrects" });
 
-    signAndSendToken(res, user);
+    const token = generateToken(user);
 
     const userWithoutPassword = { ...user._doc };
     delete userWithoutPassword.password;
 
-    res.status(200).json(userWithoutPassword);
+    res.status(200).json({ ...userWithoutPassword, token });
   } catch (err) {
     console.error("Erreur login:", err);
     res.status(500).json({ message: "Erreur lors de la connexion" });
@@ -93,13 +87,13 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie("token");
   res.status(200).json({ message: "Déconnexion réussie" });
 };
 
 export const me = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const auth = req.headers.authorization;
+    const token = auth?.startsWith("Bearer ") ? auth.slice(7) : req.cookies?.token;
     if (!token) return res.status(401).json({ message: "Non authentifié" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

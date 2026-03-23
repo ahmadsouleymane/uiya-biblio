@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 const API = import.meta.env.VITE_API_URL + "/loan"
-const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
+const opts = { headers: { "Content-Type": "application/json" } }
 
 export const borrowBook = (userId, bookId) =>
   apiFetch(`${API}/borrow`, { ...opts, method: "POST", body: JSON.stringify({ userId, bookId }) }).then(r => r.json())

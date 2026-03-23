@@ -9,8 +9,8 @@ export const checkIn = async (req, res) => {
     const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
-    const presence = await Presence.create({ user: userId });
-    await presence.populate("user", "-password");
+    const presence = await Presence.create({ user: userId, scannedBy: req.user._id });
+    await presence.populate(["user", { path: "scannedBy", select: "fullName" }]);
 
     res.status(201).json(presence);
   } catch (e) {
@@ -27,7 +27,7 @@ export const checkOut = async (req, res) => {
 
     presence.checkOut = new Date();
     await presence.save();
-    await presence.populate("user", "-password");
+    await presence.populate(["user", { path: "scannedBy", select: "fullName" }]);
 
     res.status(200).json(presence);
   } catch (e) {
@@ -44,6 +44,7 @@ export const getTodayPresence = async (req, res) => {
 
     const presences = await Presence.find({ checkIn: { $gte: start, $lte: end } })
       .populate("user", "-password")
+      .populate("scannedBy", "fullName")
       .sort({ checkIn: -1 });
 
     res.status(200).json(presences);
@@ -61,6 +62,7 @@ export const getPresenceHistory = async (req, res) => {
     const [presences, total] = await Promise.all([
       Presence.find()
         .populate("user", "-password")
+        .populate("scannedBy", "fullName")
         .sort({ checkIn: -1 })
         .skip(skip)
         .limit(limit),

@@ -205,6 +205,11 @@ export default function AdminPresence() {
                         <p className="text-xs" style={{ color: "var(--muted)" }}>
                           {fmt(p.checkIn)}{p.checkOut && ` → ${fmt(p.checkOut)}`}
                         </p>
+                        {p.scannedBy && (
+                          <p className="text-xs" style={{ color: "var(--muted)" }}>
+                            Par : <span className="font-medium">{p.scannedBy.fullName}</span>
+                          </p>
+                        )}
                       </div>
                       {p.checkOut ? (
                         <span className="badge badge-gray shrink-0">Sorti</span>
@@ -252,6 +257,11 @@ export default function AdminPresence() {
                           {new Date(p.checkIn).toLocaleDateString("fr-FR")} · {fmt(p.checkIn)}{" "}
                           → {p.checkOut ? fmt(p.checkOut) : <span style={{ color: "#059669" }}>En salle</span>}
                         </p>
+                        {p.scannedBy && (
+                          <p className="text-xs" style={{ color: "#cbd5e1" }}>
+                            Par : <span className="font-medium">{p.scannedBy.fullName}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
                   )

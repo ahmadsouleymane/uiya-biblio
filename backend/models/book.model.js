@@ -58,6 +58,10 @@ const bookSchema = new mongoose.Schema({
   digitalUrl: {
     type: String
   },
+  addedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   createdAt: {
     type: Date,
     default: Date.now

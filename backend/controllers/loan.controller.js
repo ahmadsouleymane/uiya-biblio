@@ -54,8 +54,8 @@ export const borrowBook = async (req, res) => {
     book.availableCopies -= 1;
     await book.save();
 
-    const loan = await Loan.create({ user: userId, book: bookId });
-    await loan.populate(["user", "book"]);
+    const loan = await Loan.create({ user: userId, book: bookId, performedBy: req.user._id });
+    await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }]);
 
     res.status(201).json(loan);
   } catch (e) {
@@ -86,11 +86,12 @@ export const returnBook = async (req, res) => {
 
     loan.status = "returned";
     loan.returnDate = now;
+    loan.returnedBy = req.user._id;
     await loan.save();
 
     await Book.findByIdAndUpdate(loan.book, { $inc: { availableCopies: 1 } });
 
-    await loan.populate(["user", "book"]);
+    await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }, { path: "returnedBy", select: "fullName" }]);
     res.status(200).json({ loan, fine });
   } catch (e) {
     console.error(e);
@@ -123,6 +124,8 @@ export const getUserLoans = async (req, res) => {
     let loans = await Loan.find({ user: req.params.userId })
       .populate("book")
       .populate("user", "-password")
+      .populate("performedBy", "fullName")
+      .populate("returnedBy", "fullName")
       .sort({ borrowDate: -1 });
 
     loans = await markLateLoans(loans, settings.loanDurationDays);
@@ -156,10 +159,11 @@ export const returnByUserAndIsbn = async (req, res) => {
 
     loan.status = "returned";
     loan.returnDate = now;
+    loan.returnedBy = req.user._id;
     await loan.save();
     await Book.findByIdAndUpdate(book._id, { $inc: { availableCopies: 1 } });
 
-    await loan.populate(["user", "book"]);
+    await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }, { path: "returnedBy", select: "fullName" }]);
     res.status(200).json({ loan, fine });
   } catch (e) {
     console.error(e);
@@ -176,6 +180,8 @@ export const getAllLoans = async (req, res) => {
     let query = Loan.find()
       .populate("book")
       .populate("user", "-password")
+      .populate("performedBy", "fullName")
+      .populate("returnedBy", "fullName")
       .sort({ borrowDate: -1 });
 
     if (page > 0 && limit > 0) {

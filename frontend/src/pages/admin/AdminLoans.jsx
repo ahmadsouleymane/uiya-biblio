@@ -202,6 +202,12 @@ function LoanList() {
                       <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                         {new Date(loan.borrowDate).toLocaleDateString("fr-FR")} → {dueDate(loan.borrowDate)}
                       </p>
+                      {loan.performedBy && (
+                        <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                          Par : <span className="font-medium">{loan.performedBy.fullName}</span>
+                          {loan.status === "returned" && loan.returnedBy && ` · Retour : ${loan.returnedBy.fullName}`}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {/* Badge + action */}
