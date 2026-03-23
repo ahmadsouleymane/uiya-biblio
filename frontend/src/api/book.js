@@ -4,11 +4,7 @@ const API = import.meta.env.VITE_API_URL + "/book"
 const opts = { credentials: "include", headers: { "Content-Type": "application/json" } }
 
 export const addBook = (data) =>
-  apiFetch(`${API}/addBook`, { ...opts, method: "POST", body: JSON.stringify(data) })
-    .then(async r => {
-      const text = await r.text()
-      try { return JSON.parse(text) } catch { throw new Error(`Status ${r.status}: ${text.slice(0, 200)}`) }
-    })
+  apiFetch(`${API}/addBook`, { ...opts, method: "POST", body: JSON.stringify(data) }).then(r => r.json())
 
 export const getBooks = (params = {}) => {
   const query = new URLSearchParams(params).toString()
