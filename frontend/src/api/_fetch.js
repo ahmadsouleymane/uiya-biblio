@@ -17,7 +17,7 @@ export function apiFetch(url, options = {}) {
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
     .then(res => {
-      if (res.status === 401) {
+      if (res.status === 401 && !url.includes("/me") && !url.includes("/login")) {
         localStorage.removeItem("biblio_user")
         toast.error("Session expirée, veuillez vous reconnecter")
         window.location.href = "/connexion"
