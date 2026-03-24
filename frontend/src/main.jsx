@@ -27,6 +27,7 @@ import EmployeePresence from "./pages/employe/EmployeePresence"
 import EmployeeLoan from "./pages/employe/EmployeeLoan"
 
 import AddBook from "./pages/addBook"
+import EditBook from "./pages/editBook"
 import Activity from "./pages/activity"
 import QrPage from "./pages/QrPage"
 import ForgotPassword from "./pages/ForgotPassword"
@@ -80,6 +81,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/admin/import" element={<PrivateRoute roles={["admin"]}><AdminImport /></PrivateRoute>} />
         <Route path="/admin/categories" element={<PrivateRoute roles={["admin"]}><AdminCategories /></PrivateRoute>} />
         <Route path="/add-book" element={<PrivateRoute roles={["admin","employee"]}><AddBook /></PrivateRoute>} />
+        <Route path="/edit-book/:id" element={<PrivateRoute roles={["admin","employee"]}><EditBook /></PrivateRoute>} />
 
         {/* Employé */}
         <Route path="/employe" element={<PrivateRoute roles={["employee","admin"]}><EmployeeDashboard /></PrivateRoute>} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, Plus, Trash2, BookOpen, ChevronLeft, ChevronRight, Upload, Tag } from "lucide-react"
+import { Search, Plus, Trash2, BookOpen, ChevronLeft, ChevronRight, Upload, Tag, Pencil } from "lucide-react"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import { getBooks, deleteBook } from "../../api/book"
@@ -94,6 +94,13 @@ export default function AdminBooks() {
                     {/* Desktop hover overlay */}
                     <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-xl items-center justify-center gap-2">
                       <button
+                        onClick={e => { e.stopPropagation(); navigate(`/edit-book/${book._id}`) }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity w-10 h-10 rounded-full bg-white/80 backdrop-blur text-primary flex items-center justify-center shadow-lg hover:bg-white"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={e => { e.stopPropagation(); generateBookLabel(book) }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity w-10 h-10 rounded-full bg-white/80 backdrop-blur text-primary flex items-center justify-center shadow-lg hover:bg-white"
                         title="Télécharger l'étiquette"
@@ -117,6 +124,12 @@ export default function AdminBooks() {
                     </span>
                     {/* Mobile action buttons */}
                     <div className="flex gap-2 pt-2 md:hidden">
+                      <button
+                        onClick={e => { e.stopPropagation(); navigate(`/edit-book/${book._id}`) }}
+                        className="flex-1 h-11 rounded-xl bg-blue-50 flex items-center justify-center gap-1 text-xs font-semibold text-blue-600"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Modifier
+                      </button>
                       <button
                         onClick={e => { e.stopPropagation(); generateBookLabel(book) }}
                         className="flex-1 h-11 rounded-xl bg-gray-100 flex items-center justify-center gap-1 text-xs font-semibold text-primary"

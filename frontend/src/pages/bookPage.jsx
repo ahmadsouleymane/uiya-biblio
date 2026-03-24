@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Link2, Clock, BookMarked } from "lucide-react"
+import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Link2, Clock, BookMarked, Pencil } from "lucide-react"
 import { useState, useEffect } from "react"
 import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
@@ -182,9 +182,16 @@ export default function BookPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <p className="text-white font-semibold text-sm uppercase tracking-widest">Détail du livre</p>
-          <button onClick={handleLike} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white flex items-center justify-center">
-            <Heart className={`w-5 h-5 ${liked ? "fill-secondary text-secondary" : ""}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            {user && (user.role === "admin" || user.role === "employee") && (
+              <button onClick={() => navigate(`/edit-book/${id}`)} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white flex items-center justify-center">
+                <Pencil className="w-5 h-5" />
+              </button>
+            )}
+            <button onClick={handleLike} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white flex items-center justify-center">
+              <Heart className={`w-5 h-5 ${liked ? "fill-secondary text-secondary" : ""}`} />
+            </button>
+          </div>
         </div>
 
         {/* Cover + info */}
