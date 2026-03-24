@@ -137,12 +137,22 @@ export default function AddBook() {
   }, [step])
 
   const handleCaptureCover = () => {
+    const video = coverVideoRef.current
+    const vw = video.videoWidth
+    const vh = video.videoHeight
+
+    // Rectangle guide : 65% largeur, ratio 2:3 (couverture de livre)
+    const rectW = vw * 0.65
+    const rectH = rectW * 1.5
+    const rx = (vw - rectW) / 2
+    const ry = (vh - rectH) / 2
+
     const canvas = document.createElement("canvas")
-    canvas.width = coverVideoRef.current.videoWidth
-    canvas.height = coverVideoRef.current.videoHeight
-    canvas.getContext("2d").drawImage(coverVideoRef.current, 0, 0)
+    canvas.width = rectW
+    canvas.height = rectH
+    canvas.getContext("2d").drawImage(video, rx, ry, rectW, rectH, 0, 0, rectW, rectH)
     setForm((prev) => ({ ...prev, cover: canvas.toDataURL("image/jpeg", 0.85) }))
-    coverVideoRef.current?.srcObject?.getTracks().forEach((t) => t.stop())
+    video.srcObject?.getTracks().forEach((t) => t.stop())
     setStep("form")
   }
 
@@ -361,7 +371,30 @@ export default function AddBook() {
         {step === "cover-cam" && (
           <div className="card-p space-y-4">
             <p className="text-xl font-black text-primary text-center">Photographiez la couverture</p>
-            <video ref={coverVideoRef} className="w-full h-72 rounded-xl bg-black object-cover" autoPlay muted playsInline />
+            <p className="text-sm text-center" style={{ color: "var(--muted)" }}>Placez le livre dans le rectangle</p>
+            <div className="relative w-full rounded-xl overflow-hidden" style={{ height: "24rem" }}>
+              <video ref={coverVideoRef} className="w-full h-full bg-black object-cover" autoPlay muted playsInline />
+              {/* Overlay sombre avec découpe rectangle */}
+              <div className="absolute inset-0 pointer-events-none" style={{
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.55) 100%)",
+                maskImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Crect x='17.5' y='12.5' width='65' height='75' rx='3' fill='black'/%3E%3C/svg%3E\")",
+                WebkitMaskImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Crect x='17.5' y='12.5' width='65' height='75' rx='3' fill='black'/%3E%3C/svg%3E\")",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%",
+              }} />
+              {/* Bordure du rectangle guide */}
+              <div className="absolute pointer-events-none rounded-md" style={{
+                left: "17.5%", top: "12.5%", width: "65%", height: "75%",
+                border: "2.5px solid rgba(255,255,255,0.85)",
+                boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
+              }}>
+                {/* Coins décoratifs */}
+                <div className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-3 border-l-3 rounded-tl-md" style={{ borderColor: "white" }} />
+                <div className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-3 border-r-3 rounded-tr-md" style={{ borderColor: "white" }} />
+                <div className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-3 border-l-3 rounded-bl-md" style={{ borderColor: "white" }} />
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-3 border-r-3 rounded-br-md" style={{ borderColor: "white" }} />
+              </div>
+            </div>
             <button onClick={handleCaptureCover} className="btn btn-primary btn-lg w-full">
               <Camera className="w-5 h-5" /> Prendre la photo
             </button>
