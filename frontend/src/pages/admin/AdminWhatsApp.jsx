@@ -52,8 +52,9 @@ export default function AdminWhatsApp() {
   useEffect(() => {
     if (status === "qr_pending") startPolling()
     else if (status === "ready") { stopPolling(); if (connecting) { toast.success("Bot WhatsApp connecté !"); setConnecting(false) } }
-    else stopPolling()
-  }, [status])
+    else if (!connecting) stopPolling()
+    // Si connecting=true, on garde le polling actif même si status=disconnected
+  }, [status, connecting])
 
   const handleConnect = async () => {
     setConnecting(true)
