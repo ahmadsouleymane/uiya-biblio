@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   BookOpen, Users, ArrowLeftRight, CalendarCheck,
   AlertCircle, CheckCircle, TrendingUp, Clock,
-  Download, FileText, Settings, Shield, Upload,
+  Download, FileText, Settings, Shield, Upload, Award,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
-import { getAdminStats, exportPdf as exportPdfApi } from "../api/stats"
+import { getAdminStats, exportPdf as exportPdfApi, getEmployeeBookRanking } from "../api/stats"
 import { apiFetch } from "../api/_fetch"
 import { useUser } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
@@ -94,6 +94,8 @@ export default function Admin() {
   const [stats, setStats]       = useState(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(false)
+  const [ranking, setRanking]   = useState([])
+  const [rankingLoading, setRankingLoading] = useState(true)
 
   // Export state
   const [exportType, setExportType]     = useState("loans")
@@ -110,6 +112,11 @@ export default function Admin() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
+
+    getEmployeeBookRanking()
+      .then(data => { if (Array.isArray(data)) setRanking(data) })
+      .catch(() => {})
+      .finally(() => setRankingLoading(false))
   }, [])
 
   // ── Export ────────────────────────────────────────────────────────
@@ -403,6 +410,81 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* ── Classement employés ────────────────────────────────── */}
+        <div>
+          <p className="overline mb-4">Classement des employés</p>
+          {rankingLoading ? (
+            <div className="skeleton h-48" />
+          ) : ranking.length === 0 ? (
+            <div className="card p-8 text-center">
+              <p className="text-sm" style={{ color: "var(--muted)" }}>Aucun livre ajouté par les employés pour le moment</p>
+            </div>
+          ) : (
+            <div className="card p-5">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${chartAlpha}0.06)`, color: chartColor }}>
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-black text-primary text-sm">Livres ajoutés par employé</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    Classement basé sur le nombre de livres enregistrés dans le catalogue
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {ranking.map((emp, i) => {
+                  const medalColors = ["#f59e0b", "#94a3b8", "#b45309"]
+                  const medalColor = i < 3 ? medalColors[i] : "var(--muted)"
+                  const maxBooks = ranking[0]?.booksAdded || 1
+                  return (
+                    <div key={emp.userId} className="flex items-center gap-3 p-3 rounded-xl transition-all" style={{ background: i < 3 ? `${chartAlpha}0.03)` : "transparent" }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-black text-sm"
+                        style={{
+                          background: i < 3 ? medalColor : "var(--border)",
+                          color: i < 3 ? "#fff" : "var(--muted)",
+                        }}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-primary truncate">{emp.fullName}</p>
+                          <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{
+                            background: emp.role === "admin" ? "rgba(225,29,72,0.08)" : "rgba(124,58,237,0.08)",
+                            color: emp.role === "admin" ? "#e11d48" : "#7c3aed",
+                          }}>
+                            {emp.role === "admin" ? "Admin" : "Employé"}
+                          </span>
+                        </div>
+                        {emp.department && (
+                          <p className="text-xs" style={{ color: "var(--muted)" }}>{emp.department}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: `${chartAlpha}0.08)` }}>
+                            <div className="h-full rounded-full transition-all" style={{
+                              width: `${Math.round((emp.booksAdded / maxBooks) * 100)}%`,
+                              background: i === 0 ? chartColor : `${chartAlpha}${Math.max(0.2, 0.6 - i * 0.05)})`,
+                            }} />
+                          </div>
+                          <span className="text-xs font-bold shrink-0" style={{ color: chartColor }}>
+                            {emp.booksAdded} livre{emp.booksAdded > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>Dernier ajout</p>
+                        <p className="text-xs font-semibold" style={{ color: "var(--fg)" }}>
+                          {new Date(emp.lastAdded).toLocaleDateString("fr-FR")}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── Export ─────────────────────────────────────────────── */}
         <div>

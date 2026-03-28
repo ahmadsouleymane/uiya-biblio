@@ -515,6 +515,54 @@ export const exportData = async (req, res) => {
   }
 };
 
+// ── Classement employés par livres ajoutés ───────────────────────────
+export const getEmployeeBookRanking = async (req, res) => {
+  try {
+    const ranking = await Book.aggregate([
+      { $match: { addedBy: { $exists: true, $ne: null } } },
+      {
+        $group: {
+          _id: "$addedBy",
+          booksAdded: { $sum: 1 },
+          lastAdded: { $max: "$createdAt" },
+        },
+      },
+      { $sort: { booksAdded: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $match: {
+          "user.role": { $in: ["employee", "admin"] },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$user._id",
+          fullName: "$user.fullName",
+          email: "$user.email",
+          role: "$user.role",
+          department: "$user.department",
+          booksAdded: 1,
+          lastAdded: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(ranking);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
 // ── Export PDF ────────────────────────────────────────────────────────
 export const exportPdf = async (req, res) => {
   try {

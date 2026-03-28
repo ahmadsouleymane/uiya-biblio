@@ -3,6 +3,61 @@ import Loan from "../models/loan.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import { parse } from "csv-parse/sync";
 
+export const generateDescription = async (req, res) => {
+  try {
+    const { title, author } = req.body;
+    if (!title || !author) {
+      return res.status(400).json({ message: "Titre et auteur requis" });
+    }
+
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      return res.status(500).json({ message: "Clé API Groq non configurée" });
+    }
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "Tu es un bibliothécaire expert. Génère une description courte et pertinente (2-3 phrases max, environ 50 mots) pour un livre de bibliothèque. La description doit donner envie de lire le livre. Réponds uniquement avec la description, sans guillemets ni préambule.",
+          },
+          {
+            role: "user",
+            content: `Titre : "${title}"\nAuteur : "${author}"`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error("Groq API error:", err);
+      return res.status(502).json({ message: "Erreur de l'API Groq" });
+    }
+
+    const data = await response.json();
+    const description = data.choices?.[0]?.message?.content?.trim();
+
+    if (!description) {
+      return res.status(502).json({ message: "Aucune description générée" });
+    }
+
+    res.status(200).json({ description });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Erreur lors de la génération" });
+  }
+};
+
 const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "digitalUrl"];
 
 export const addBook = async (req, res) => {

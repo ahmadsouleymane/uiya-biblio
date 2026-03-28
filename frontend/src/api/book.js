@@ -36,6 +36,9 @@ export const getBookStats = () =>
 export const getRecommendations = () =>
   apiFetch(`${API}/recommendations`, { ...opts, method: "GET" }).then(r => r.json())
 
+export const generateBookDescription = (title, author) =>
+  apiFetch(`${API}/generate-description`, { ...opts, method: "POST", body: JSON.stringify({ title, author }) }).then(r => r.json())
+
 export const importBooksCsv = (file) => {
   const formData = new FormData()
   formData.append("file", file)

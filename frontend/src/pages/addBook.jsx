@@ -4,8 +4,8 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X } from "lucide-react"
-import { addBook } from "../api/book"
+import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles } from "lucide-react"
+import { addBook, generateBookDescription } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
 
@@ -48,6 +48,7 @@ export default function AddBook() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [categories, setCategories] = useState([])
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
@@ -154,6 +155,28 @@ export default function AddBook() {
     setForm((prev) => ({ ...prev, cover: canvas.toDataURL("image/jpeg", 0.85) }))
     video.srcObject?.getTracks().forEach((t) => t.stop())
     setStep("form")
+  }
+
+  // ── Génération IA de description ──────────────────────────────────
+  const handleGenerateDescription = async () => {
+    if (!form.title.trim() || !form.author.trim()) {
+      toast.error("Remplissez le titre et l'auteur d'abord")
+      return
+    }
+    setGenerating(true)
+    try {
+      const data = await generateBookDescription(form.title.trim(), form.author.trim())
+      if (data.description) {
+        setField("description", data.description)
+        toast.success("Description générée !")
+      } else {
+        toast.error(data.message || "Erreur lors de la génération")
+      }
+    } catch {
+      toast.error("Erreur lors de la génération")
+    } finally {
+      setGenerating(false)
+    }
   }
 
   // ── Validation ───────────────────────────────────────────────────
@@ -311,10 +334,23 @@ export default function AddBook() {
                   {errors.copies && <p className="text-xs mt-1" style={{ color: "#e11d48" }}>{errors.copies}</p>}
                 </div>
 
-                {/* Champs optionnels */}
+                {/* Description avec génération IA */}
                 <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Description (optionnel)</label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateDescription}
+                      disabled={generating || !form.title.trim() || !form.author.trim()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
+                      style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb)", color: "#fff" }}
+                    >
+                      {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      {generating ? "Génération…" : "Générer avec IA"}
+                    </button>
+                  </div>
                   <textarea
-                    placeholder="Description (optionnel)"
+                    placeholder="Description du livre — ou cliquez sur « Générer avec IA »"
                     value={form.description}
                     onChange={e => setField("description", e.target.value)}
                     className="input resize-none"

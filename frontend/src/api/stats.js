@@ -6,6 +6,9 @@ const opts = { headers: { "Content-Type": "application/json" } }
 export const getAdminStats = () =>
   apiFetch(`${API}/`, { ...opts, method: "GET" }).then(r => r.json())
 
+export const getEmployeeBookRanking = () =>
+  apiFetch(`${API}/employee-ranking`, { ...opts, method: "GET" }).then(r => r.json())
+
 export const exportPdf = (params) => {
   const query = new URLSearchParams(params).toString()
   return apiFetch(`${API}/export-pdf?${query}`, { method: "GET" })
