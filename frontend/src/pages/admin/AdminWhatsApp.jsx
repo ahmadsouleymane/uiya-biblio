@@ -18,6 +18,7 @@ export default function AdminWhatsApp() {
   const [bulkMessage, setBulkMessage] = useState("")
   const [bulkRole, setBulkRole] = useState("all")
   const [bulkSending, setBulkSending] = useState(false)
+  const [debugInfo, setDebugInfo] = useState("")
   const pollRef = useRef(null)
 
   const fetchStatus = async () => {
@@ -25,24 +26,23 @@ export default function AdminWhatsApp() {
       const res = await apiFetch(`${API}/whatsapp/status`)
       if (res.ok) {
         const data = await res.json()
+        console.log("[WhatsApp debug]", data)
+        setDebugInfo(`status: ${data.status}, qrCode: ${data.qrCode ? "oui (" + data.qrCode.substring(0, 30) + "...)" : "non"}`)
         setStatus(data.status)
         setQrCode(data.qrCode)
+      } else {
+        setDebugInfo(`Erreur HTTP ${res.status}`)
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      setDebugInfo(`Erreur réseau: ${err.message}`)
+    }
     setLoading(false)
   }
 
-  useEffect(() => {
-    fetchStatus()
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [])
-
-  // Polling quand on attend le QR ou la connexion
+  // Polling toutes les 2 secondes quand on attend le QR
   const startPolling = () => {
     if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(async () => {
-      await fetchStatus()
-    }, 3000)
+    pollRef.current = setInterval(fetchStatus, 2000)
   }
 
   const stopPolling = () => {
@@ -50,35 +50,57 @@ export default function AdminWhatsApp() {
   }
 
   useEffect(() => {
-    if (status === "qr_pending") startPolling()
-    else if (status === "ready") { stopPolling(); if (connecting) { toast.success("Bot WhatsApp connecté !"); setConnecting(false) } }
-    else if (!connecting) stopPolling()
-    // Si connecting=true, on garde le polling actif même si status=disconnected
-  }, [status, connecting])
+    fetchStatus()
+    return () => stopPolling()
+  }, [])
+
+  // Gérer le polling selon le statut
+  useEffect(() => {
+    if (status === "ready") {
+      stopPolling()
+      if (connecting) {
+        toast.success("Bot WhatsApp connecté !")
+        setConnecting(false)
+      }
+    }
+    // Continuer le polling tant qu'on est en train de connecter
+  }, [status])
 
   const handleConnect = async () => {
     setConnecting(true)
+    setDebugInfo("Connexion en cours...")
     try {
-      const res = await apiFetch(`${API}/whatsapp/connect`, { method: "POST", headers: { "Content-Type": "application/json" } })
+      const res = await apiFetch(`${API}/whatsapp/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
       if (res.ok) {
-        toast("Initialisation en cours... Scannez le QR code", { icon: "📱" })
+        toast("Initialisation en cours...", { icon: "📱" })
+        // Commencer le polling immédiatement
         startPolling()
       } else {
-        toast.error("Erreur lors de la connexion")
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.message || "Erreur lors de la connexion")
+        setDebugInfo(`Erreur connect: ${JSON.stringify(data)}`)
         setConnecting(false)
       }
-    } catch {
+    } catch (err) {
       toast.error("Erreur réseau")
+      setDebugInfo(`Erreur réseau: ${err.message}`)
       setConnecting(false)
     }
   }
 
   const handleDisconnect = async () => {
     try {
-      const res = await apiFetch(`${API}/whatsapp/disconnect`, { method: "POST", headers: { "Content-Type": "application/json" } })
+      const res = await apiFetch(`${API}/whatsapp/disconnect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
       if (res.ok) {
         setStatus("disconnected")
         setQrCode(null)
+        setConnecting(false)
         stopPolling()
         toast.success("Bot déconnecté")
       }
@@ -180,12 +202,12 @@ export default function AdminWhatsApp() {
               {status !== "ready" ? (
                 <button
                   onClick={handleConnect}
-                  disabled={connecting || status === "qr_pending"}
+                  disabled={connecting}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-60"
                   style={{ background: "#25d366" }}
                 >
                   {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-                  Connecter
+                  {connecting ? "Connexion..." : "Connecter"}
                 </button>
               ) : (
                 <button
@@ -207,8 +229,23 @@ export default function AdminWhatsApp() {
             </div>
           </div>
 
+          {/* Debug info */}
+          {debugInfo && (
+            <p className="text-xs font-mono p-2 rounded-lg" style={{ background: "var(--surface)", color: "var(--muted)" }}>
+              {debugInfo}
+            </p>
+          )}
+
+          {/* En attente du QR */}
+          {connecting && !qrCode && status !== "ready" && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="w-10 h-10 animate-spin" style={{ color: "#25d366" }} />
+              <p className="text-sm text-muted">Génération du QR code en cours...</p>
+            </div>
+          )}
+
           {/* QR Code */}
-          {status === "qr_pending" && qrCode && (
+          {qrCode && (
             <div className="flex flex-col items-center gap-4 py-4">
               <p className="text-sm text-muted text-center">
                 Scannez ce QR code avec WhatsApp sur votre téléphone
@@ -226,7 +263,7 @@ export default function AdminWhatsApp() {
             <div className="rounded-xl p-4" style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)" }}>
               <p className="text-sm font-bold" style={{ color: "#22c55e" }}>Notifications automatiques actives</p>
               <ul className="text-sm text-muted mt-2 space-y-1">
-                <li>• Message de bienvenue à chaque inscription</li>
+                <li>��� Message de bienvenue à chaque inscription</li>
                 <li>• Rappel 2 jours avant la date de retour</li>
                 <li>• Alerte en cas de retard de prêt</li>
               </ul>
@@ -244,7 +281,7 @@ export default function AdminWhatsApp() {
             <div className="grid sm:grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder="Numéro (ex: 0555123456)"
+                placeholder="Numéro (ex: 0701234567)"
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
                 className="input"
@@ -277,7 +314,7 @@ export default function AdminWhatsApp() {
               <h2 className="font-black text-primary">Diffusion en masse</h2>
             </div>
             <p className="text-sm text-muted">
-              Envoyez un message à tous les utilisateurs. Utilisez <code className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: "var(--surface)" }}>{"{nom}"}</code> pour personnaliser avec le nom de chaque utilisateur.
+              Envoyez un message à tous les utilisateurs. Utilisez <code className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: "var(--surface)" }}>{"{nom}"}</code> pour personnaliser avec le nom.
             </p>
             <div className="flex gap-3 flex-wrap">
               <select
