@@ -1,5 +1,3 @@
-import pkg from "whatsapp-web.js";
-const { Client, LocalAuth } = pkg;
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -11,26 +9,17 @@ let status = "disconnected"; // disconnected | qr_pending | ready | error
 
 /**
  * Formater un numéro de téléphone pour WhatsApp (Côte d'Ivoire = 225)
- *
- * whatsapp-web.js utilise le format : indicatif + numéro + @c.us
- * Exemples CI : 2250701234567@c.us
- *
- * Accepte : 0701234567, +2250701234567, 2250701234567, 07 01 23 45 67
+ * 0701234567 → 2250701234567@c.us
+ * +2250701234567 → 2250701234567@c.us
  */
 function formatPhone(phone) {
-  // Retirer tout sauf les chiffres
   let cleaned = phone.replace(/[^\d]/g, "");
 
-  // Si commence par 00225, retirer le 00
   if (cleaned.startsWith("00225")) {
     cleaned = cleaned.slice(2);
-  }
-  // Si commence par 0 (numéro local), remplacer par 225
-  else if (cleaned.startsWith("0")) {
+  } else if (cleaned.startsWith("0")) {
     cleaned = "225" + cleaned.slice(1);
-  }
-  // Si ne commence pas par 225, ajouter 225
-  else if (!cleaned.startsWith("225")) {
+  } else if (!cleaned.startsWith("225")) {
     cleaned = "225" + cleaned;
   }
 
@@ -41,63 +30,73 @@ export function getWhatsAppStatus() {
   return { status, qrCode: qrCodeData };
 }
 
-export function initWhatsApp() {
+export async function initWhatsApp() {
   if (client) return;
 
-  const puppeteerArgs = [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-gpu",
-    "--disable-dev-shm-usage",
-    "--single-process",
-  ];
+  try {
+    // Import dynamique — ne charge Puppeteer que quand on connecte le bot
+    const pkg = await import("whatsapp-web.js");
+    const { Client, LocalAuth } = pkg.default || pkg;
 
-  const puppeteerOptions = {
-    headless: true,
-    args: puppeteerArgs,
-  };
+    const puppeteerArgs = [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--single-process",
+    ];
 
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
+    const puppeteerOptions = {
+      headless: true,
+      args: puppeteerArgs,
+    };
 
-  client = new Client({
-    authStrategy: new LocalAuth({
-      dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
-    }),
-    puppeteer: puppeteerOptions,
-  });
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
 
-  client.on("qr", (qr) => {
-    qrCodeData = qr;
-    status = "qr_pending";
-    console.log("[WhatsApp] QR code généré — scannez-le depuis l'admin");
-  });
+    client = new Client({
+      authStrategy: new LocalAuth({
+        dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
+      }),
+      puppeteer: puppeteerOptions,
+    });
 
-  client.on("ready", () => {
-    qrCodeData = null;
-    status = "ready";
-    console.log("[WhatsApp] Bot connecté et prêt !");
-  });
+    client.on("qr", (qr) => {
+      qrCodeData = qr;
+      status = "qr_pending";
+      console.log("[WhatsApp] QR code généré — scannez-le depuis l'admin");
+    });
 
-  client.on("authenticated", () => {
-    console.log("[WhatsApp] Authentifié");
-  });
+    client.on("ready", () => {
+      qrCodeData = null;
+      status = "ready";
+      console.log("[WhatsApp] Bot connecté et prêt !");
+    });
 
-  client.on("auth_failure", (msg) => {
+    client.on("authenticated", () => {
+      console.log("[WhatsApp] Authentifié");
+    });
+
+    client.on("auth_failure", (msg) => {
+      status = "error";
+      console.error("[WhatsApp] Échec auth:", msg);
+    });
+
+    client.on("disconnected", (reason) => {
+      status = "disconnected";
+      qrCodeData = null;
+      client = null;
+      console.log("[WhatsApp] Déconnecté:", reason);
+    });
+
+    client.initialize();
+    console.log("[WhatsApp] Initialisation du bot...");
+  } catch (err) {
+    console.error("[WhatsApp] Erreur init:", err);
     status = "error";
-    console.error("[WhatsApp] Échec auth:", msg);
-  });
-
-  client.on("disconnected", (reason) => {
-    status = "disconnected";
-    qrCodeData = null;
     client = null;
-    console.log("[WhatsApp] Déconnecté:", reason);
-  });
-
-  client.initialize();
-  console.log("[WhatsApp] Initialisation du bot...");
+  }
 }
 
 export function destroyWhatsApp() {
@@ -119,7 +118,6 @@ async function sendMessage(phone, message) {
   console.log(`[WhatsApp] Envoi à ${phone} → formaté: ${chatId}`);
 
   try {
-    // Vérifier si le numéro est enregistré sur WhatsApp
     const isRegistered = await client.isRegisteredUser(chatId);
     if (!isRegistered) {
       console.log(`[WhatsApp] ${chatId} n'est pas enregistré sur WhatsApp`);
