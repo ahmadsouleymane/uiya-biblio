@@ -26,7 +26,7 @@ export const getStatus = async (req, res) => {
 
 export const connect = async (req, res) => {
   try {
-    initWhatsApp();
+    await initWhatsApp();
     res.status(200).json({ message: "Initialisation du bot WhatsApp en cours..." });
   } catch (err) {
     console.error(err);

@@ -1,106 +1,105 @@
-import pkg from "whatsapp-web.js";
-const { Client, LocalAuth } = pkg;
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, delay } from "@whiskeysockets/baileys";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AUTH_DIR = path.join(__dirname, "..", ".wwebjs_auth");
 
-let client = null;
+let socket = null;
 let qrCodeData = null;
 let status = "disconnected"; // disconnected | qr_pending | ready | error
 
 /**
- * Formater un numéro de téléphone pour WhatsApp
- * Accepte : 0555123456, +213555123456, 213555123456
- * Retourne : 213555123456@c.us
+ * Formater un numéro pour WhatsApp (Côte d'Ivoire = 225)
+ * 0701234567 → 2250701234567@s.whatsapp.net
+ * +2250701234567 → 2250701234567@s.whatsapp.net
  */
 function formatPhone(phone) {
   let cleaned = phone.replace(/[\s\-().+]/g, "");
-  // Si commence par 0, remplacer par l'indicatif pays (225 pour la Côte d'Ivoire)
   if (cleaned.startsWith("0")) {
     cleaned = "225" + cleaned.slice(1);
   }
-  // Si pas d'indicatif, ajouter 225
   if (cleaned.length <= 10) {
     cleaned = "225" + cleaned;
   }
-  return cleaned + "@c.us";
+  return cleaned + "@s.whatsapp.net";
 }
 
 export function getWhatsAppStatus() {
   return { status, qrCode: qrCodeData };
 }
 
-export function initWhatsApp() {
-  if (client) return;
+export async function initWhatsApp() {
+  if (socket) return;
 
-  const puppeteerOptions = {
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
-  };
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
-  // En production (Railway), utiliser le Chromium système
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
+    socket = makeWASocket.default({
+      auth: state,
+      printQRInTerminal: true,
+      browser: ["Biblio UIYA", "Chrome", "1.0.0"],
+    });
 
-  client = new Client({
-    authStrategy: new LocalAuth({
-      dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
-    }),
-    puppeteer: puppeteerOptions,
-  });
+    socket.ev.on("creds.update", saveCreds);
 
-  client.on("qr", (qr) => {
-    qrCodeData = qr;
-    status = "qr_pending";
-    console.log("[WhatsApp] QR code généré — scannez-le depuis l'admin");
-  });
+    socket.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
+      if (qr) {
+        qrCodeData = qr;
+        status = "qr_pending";
+        console.log("[WhatsApp] QR code généré — scannez-le depuis l'admin");
+      }
 
-  client.on("ready", () => {
-    qrCodeData = null;
-    status = "ready";
-    console.log("[WhatsApp] Bot connecté et prêt !");
-  });
+      if (connection === "open") {
+        qrCodeData = null;
+        status = "ready";
+        console.log("[WhatsApp] Bot connecté et prêt !");
+      }
 
-  client.on("authenticated", () => {
-    console.log("[WhatsApp] Authentifié");
-  });
+      if (connection === "close") {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-  client.on("auth_failure", (msg) => {
+        console.log("[WhatsApp] Déconnecté, code:", statusCode);
+
+        socket = null;
+        if (shouldReconnect) {
+          console.log("[WhatsApp] Reconnexion...");
+          initWhatsApp();
+        } else {
+          status = "disconnected";
+          qrCodeData = null;
+          console.log("[WhatsApp] Déconnecté (logged out)");
+        }
+      }
+    });
+
+    console.log("[WhatsApp] Initialisation du bot...");
+  } catch (err) {
+    console.error("[WhatsApp] Erreur init:", err);
     status = "error";
-    console.error("[WhatsApp] Échec auth:", msg);
-  });
-
-  client.on("disconnected", (reason) => {
-    status = "disconnected";
-    qrCodeData = null;
-    client = null;
-    console.log("[WhatsApp] Déconnecté:", reason);
-  });
-
-  client.initialize();
-  console.log("[WhatsApp] Initialisation du bot...");
+    socket = null;
+  }
 }
 
 export function destroyWhatsApp() {
-  if (client) {
-    client.destroy();
-    client = null;
-    status = "disconnected";
-    qrCodeData = null;
+  if (socket) {
+    socket.logout().catch(() => {});
+    socket = null;
   }
+  status = "disconnected";
+  qrCodeData = null;
 }
 
 async function sendMessage(phone, message) {
-  if (status !== "ready" || !client) {
+  if (status !== "ready" || !socket) {
     console.log("[WhatsApp] Bot non connecté, message non envoyé à", phone);
     return false;
   }
   try {
-    const chatId = formatPhone(phone);
-    await client.sendMessage(chatId, message);
-    console.log("[WhatsApp] Message envoyé à", chatId);
+    const jid = formatPhone(phone);
+    await socket.sendMessage(jid, { text: message });
+    console.log("[WhatsApp] Message envoyé à", jid);
     return true;
   } catch (err) {
     console.error("[WhatsApp] Erreur envoi:", err.message);
