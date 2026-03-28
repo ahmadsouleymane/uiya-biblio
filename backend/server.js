@@ -34,7 +34,7 @@ app.use(morgan("dev"))
 
 // CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  origin: process.env.CORS_ORIGIN || "https://uiya-biblio.vercel.app",
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 }))

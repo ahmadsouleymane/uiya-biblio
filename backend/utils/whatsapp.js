@@ -34,14 +34,21 @@ export function getWhatsAppStatus() {
 export function initWhatsApp() {
   if (client) return;
 
+  const puppeteerOptions = {
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+  };
+
+  // En production (Railway), utiliser le Chromium système
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
   client = new Client({
     authStrategy: new LocalAuth({
       dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
     }),
-    puppeteer: {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    },
+    puppeteer: puppeteerOptions,
   });
 
   client.on("qr", (qr) => {
