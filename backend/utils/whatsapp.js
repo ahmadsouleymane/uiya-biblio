@@ -17,12 +17,17 @@ let status = "disconnected"; // disconnected | qr_pending | ready | error
 function formatPhone(phone) {
   let cleaned = phone.replace(/[^\d]/g, "");
 
+  // +2250701234567 ou 002250701234567 → 2250701234567
   if (cleaned.startsWith("00225")) {
     cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith("0")) {
-    cleaned = "225" + cleaned.slice(1);
-  } else if (!cleaned.startsWith("225")) {
+  }
+  // 0701234567 → 2250701234567 (garder le 0, c'est obligatoire en CI)
+  else if (cleaned.startsWith("0")) {
     cleaned = "225" + cleaned;
+  }
+  // 701234567 (sans 0 ni indicatif) → 2250701234567
+  else if (!cleaned.startsWith("225")) {
+    cleaned = "2250" + cleaned;
   }
 
   return cleaned + "@s.whatsapp.net";
