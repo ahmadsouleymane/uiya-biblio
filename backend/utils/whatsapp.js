@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -38,16 +38,21 @@ export async function initWhatsApp() {
   try {
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
+    // Récupérer la dernière version du protocole WhatsApp
+    const { version } = await fetchLatestBaileysVersion();
+    console.log("[WhatsApp] Version WA:", version.join("."));
+
     socket = makeWASocket({
       auth: state,
-      printQRInTerminal: true,
+      version,
       browser: ["Biblio UIYA", "Chrome", "1.0.0"],
     });
 
     socket.ev.on("creds.update", saveCreds);
 
-    socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
-      console.log("[WhatsApp] connection.update:", { connection, qr: qr ? "oui" : "non" });
+    socket.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+      console.log("[WhatsApp] connection.update:", JSON.stringify({ connection, hasQr: !!qr }));
 
       if (qr) {
         try {
