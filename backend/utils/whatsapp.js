@@ -1,17 +1,18 @@
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
+import QRCode from "qrcode";
 import path from "path";
 import { fileURLToPath } from "url";
-import QRCode from "qrcode";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUTH_DIR = path.join(__dirname, "..", ".wwebjs_auth");
 
 let socket = null;
-let qrCodeData = null; // Déjà en base64 image (data:image/png;base64,...)
+let qrCodeData = null;
 let status = "disconnected"; // disconnected | qr_pending | ready | error
 
 /**
  * Formater un numéro pour WhatsApp (Côte d'Ivoire = 225)
- * Baileys utilise le format : indicatif + numéro + @s.whatsapp.net
+ * 0701234567 → 2250701234567@s.whatsapp.net
  */
 function formatPhone(phone) {
   let cleaned = phone.replace(/[^\d]/g, "");
@@ -35,10 +36,6 @@ export async function initWhatsApp() {
   if (socket) return;
 
   try {
-    const baileys = await import("@whiskeysockets/baileys");
-    const makeWASocket = baileys.default?.default || baileys.default || baileys.makeWASocket;
-    const { useMultiFileAuthState, DisconnectReason } = baileys;
-
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
     socket = makeWASocket({
@@ -50,15 +47,16 @@ export async function initWhatsApp() {
     socket.ev.on("creds.update", saveCreds);
 
     socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
+      console.log("[WhatsApp] connection.update:", { connection, qr: qr ? "oui" : "non" });
+
       if (qr) {
-        // Convertir le QR string en image base64 directement
         try {
           qrCodeData = await QRCode.toDataURL(qr);
-        } catch {
-          qrCodeData = null;
+          status = "qr_pending";
+          console.log("[WhatsApp] QR code généré ✓");
+        } catch (err) {
+          console.error("[WhatsApp] Erreur génération QR image:", err);
         }
-        status = "qr_pending";
-        console.log("[WhatsApp] QR code généré — scannez-le depuis l'admin");
       }
 
       if (connection === "open") {
@@ -73,19 +71,17 @@ export async function initWhatsApp() {
 
         socket = null;
 
-        // Reconnexion auto sauf si déconnecté manuellement (loggedOut)
         if (code !== DisconnectReason.loggedOut) {
-          console.log("[WhatsApp] Reconnexion...");
+          console.log("[WhatsApp] Reconnexion dans 3s...");
           setTimeout(() => initWhatsApp(), 3000);
         } else {
           status = "disconnected";
           qrCodeData = null;
-          console.log("[WhatsApp] Déconnecté (logged out)");
         }
       }
     });
 
-    console.log("[WhatsApp] Initialisation du bot...");
+    console.log("[WhatsApp] Initialisation du bot lancée ✓");
   } catch (err) {
     console.error("[WhatsApp] Erreur init:", err);
     status = "error";
@@ -110,11 +106,11 @@ async function sendMessage(phone, message) {
   }
 
   const jid = formatPhone(phone);
-  console.log(`[WhatsApp] Envoi à ${phone} → formaté: ${jid}`);
+  console.log(`[WhatsApp] Envoi à ${phone} → ${jid}`);
 
   try {
     await socket.sendMessage(jid, { text: message });
-    console.log(`[WhatsApp] Message envoyé à ${jid}`);
+    console.log(`[WhatsApp] Message envoyé à ${jid} ✓`);
     return true;
   } catch (err) {
     console.error(`[WhatsApp] Erreur envoi à ${jid}:`, err.message);
