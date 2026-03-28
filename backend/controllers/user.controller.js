@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendResetPasswordEmail, sendWelcomeEmail } from "../utils/email.js";
+import { sendWelcomeWhatsApp } from "../utils/whatsapp.js";
 import { parse } from "csv-parse/sync";
 
 const generateToken = (user) => {
@@ -48,6 +49,10 @@ export const addUser = async (req, res) => {
 
     sendWelcomeEmail(user.email, user.fullName).catch(err =>
       console.error("Erreur email bienvenue:", err)
+    );
+
+    sendWelcomeWhatsApp(user.phone, user.fullName).catch(err =>
+      console.error("Erreur WhatsApp bienvenue:", err)
     );
 
     const token = generateToken(user);

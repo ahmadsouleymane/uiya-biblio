@@ -10,43 +10,11 @@ export const generateDescription = async (req, res) => {
       return res.status(400).json({ message: "Titre et auteur requis" });
     }
 
-    const groqKey = process.env.GROQ_API_KEY;
-    if (!groqKey) {
+    if (!process.env.GROQ_API_KEY) {
       return res.status(500).json({ message: "Clé API Groq non configurée" });
     }
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un bibliothécaire expert. Génère une description courte et pertinente (2-3 phrases max, environ 50 mots) pour un livre de bibliothèque. La description doit donner envie de lire le livre. Réponds uniquement avec la description, sans guillemets ni préambule.",
-          },
-          {
-            role: "user",
-            content: `Titre : "${title}"\nAuteur : "${author}"`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 150,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      console.error("Groq API error:", err);
-      return res.status(502).json({ message: "Erreur de l'API Groq" });
-    }
-
-    const data = await response.json();
-    const description = data.choices?.[0]?.message?.content?.trim();
-
+    const description = await fetchAiDescription(title, author);
     if (!description) {
       return res.status(502).json({ message: "Aucune description générée" });
     }
@@ -60,6 +28,41 @@ export const generateDescription = async (req, res) => {
 
 const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "digitalUrl"];
 
+// Helper pour générer une description via Groq
+async function fetchAiDescription(title, author) {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) return null;
+
+  try {
+    const authorStr = Array.isArray(author) ? author.join(", ") : author;
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "Tu es un bibliothécaire expert. Génère une description courte et pertinente (2-3 phrases max, environ 50 mots) pour un livre de bibliothèque. La description doit donner envie de lire le livre. Réponds uniquement avec la description, sans guillemets ni préambule.",
+          },
+          { role: "user", content: `Titre : "${title}"\nAuteur : "${authorStr}"` },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      }),
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export const addBook = async (req, res) => {
   try {
     const { isbn, title, author, pages, year, category, cover, copies, publisher, description, condition, location, digitalUrl } = req.body;
@@ -70,6 +73,12 @@ export const addBook = async (req, res) => {
 
     const existing = await Book.findOne({ isbn });
     if (existing) return res.status(400).json({ message: "Ce livre existe déjà (ISBN dupliqué)" });
+
+    // Si pas de description fournie, générer automatiquement via IA
+    let finalDescription = description;
+    if (!finalDescription || !finalDescription.trim()) {
+      finalDescription = await fetchAiDescription(title, author);
+    }
 
     const copiesNum = Number(copies);
     const book = await Book.create({
@@ -83,7 +92,7 @@ export const addBook = async (req, res) => {
       cover,
       copies: copiesNum,
       availableCopies: copiesNum,
-      description,
+      description: finalDescription || "",
       condition: condition || 'bon',
       location,
       digitalUrl,
@@ -269,6 +278,48 @@ export const getRecommendations = async (req, res) => {
     }).limit(6);
 
     res.status(200).json(books);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+export const generateAllDescriptions = async (req, res) => {
+  try {
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ message: "Clé API Groq non configurée" });
+    }
+
+    const books = await Book.find({
+      $or: [{ description: { $exists: false } }, { description: "" }, { description: null }],
+    }).select("_id title author");
+
+    if (books.length === 0) {
+      return res.status(200).json({ message: "Tous les livres ont déjà une description", updated: 0, total: 0 });
+    }
+
+    let updated = 0;
+    const errors = [];
+
+    for (const book of books) {
+      try {
+        const description = await fetchAiDescription(book.title, book.author);
+
+        if (description) {
+          await Book.findByIdAndUpdate(book._id, { description });
+          updated++;
+        } else {
+          errors.push({ title: book.title, reason: "Aucune description générée" });
+        }
+
+        // Pause pour respecter le rate limit Groq
+        await new Promise(r => setTimeout(r, 200));
+      } catch (err) {
+        errors.push({ title: book.title, reason: err.message });
+      }
+    }
+
+    res.status(200).json({ updated, total: books.length, errors });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Erreur serveur" });

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   BookOpen, Users, ArrowLeftRight, CalendarCheck,
   AlertCircle, CheckCircle, TrendingUp, Clock,
-  Download, FileText, Settings, Shield, Upload, Award,
+  Download, FileText, Settings, Shield, Upload, Award, Sparkles, Loader2, MessageCircle,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -12,6 +12,7 @@ import {
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import { getAdminStats, exportPdf as exportPdfApi, getEmployeeBookRanking } from "../api/stats"
+import { generateAllBookDescriptions } from "../api/book"
 import { apiFetch } from "../api/_fetch"
 import { useUser } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
@@ -96,6 +97,7 @@ export default function Admin() {
   const [error, setError]       = useState(false)
   const [ranking, setRanking]   = useState([])
   const [rankingLoading, setRankingLoading] = useState(true)
+  const [generatingDescs, setGeneratingDescs] = useState(false)
 
   // Export state
   const [exportType, setExportType]     = useState("loans")
@@ -635,6 +637,7 @@ export default function Admin() {
               { label: "Import CSV",   desc: "Livres & utilisateurs", icon: <Upload className="w-5 h-5" />,  color: "#2563eb", bg: "rgba(37,99,235,0.08)",    path: "/admin/import" },
               { label: "Paramètres",   desc: "Configuration",     icon: <Settings className="w-5 h-5" />,   color: "#7c3aed", bg: "rgba(124,58,237,0.08)",   path: "/admin/parametres" },
               { label: "Audit",        desc: "Journal d'actions", icon: <Shield className="w-5 h-5" />,     color: chartColor, bg: `${chartAlpha}0.08)`,    path: "/admin/audit" },
+              { label: "WhatsApp",     desc: "Bot & notifications", icon: <MessageCircle className="w-5 h-5" />, color: "#25d366", bg: "rgba(37,211,102,0.08)", path: "/admin/whatsapp" },
             ].map((item, i) => (
               <button key={i} onClick={() => navigate(item.path)}
                 className="card p-4 flex flex-col items-start gap-3 hover:shadow-md transition-all text-left">
@@ -647,6 +650,37 @@ export default function Admin() {
                 </div>
               </button>
             ))}
+            {/* Bouton génération IA descriptions */}
+            <button
+              onClick={async () => {
+                setGeneratingDescs(true)
+                try {
+                  const data = await generateAllBookDescriptions()
+                  if (data.updated !== undefined) {
+                    toast.success(`${data.updated}/${data.total} descriptions générées !`)
+                    if (data.errors?.length > 0) {
+                      toast(`${data.errors.length} erreur(s)`, { icon: "⚠️" })
+                    }
+                  } else {
+                    toast(data.message || "Terminé", { icon: "ℹ️" })
+                  }
+                } catch {
+                  toast.error("Erreur lors de la génération")
+                } finally {
+                  setGeneratingDescs(false)
+                }
+              }}
+              disabled={generatingDescs}
+              className="card p-4 flex flex-col items-start gap-3 hover:shadow-md transition-all text-left disabled:opacity-60"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(37,99,235,0.12))" }}>
+                {generatingDescs ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#7c3aed" }} /> : <Sparkles className="w-5 h-5" style={{ color: "#7c3aed" }} />}
+              </div>
+              <div>
+                <p className="font-black text-sm text-primary">{generatingDescs ? "Génération…" : "Descriptions IA"}</p>
+                <p className="text-xs text-muted">Générer pour tous les livres</p>
+              </div>
+            </button>
           </div>
         </div>
 
