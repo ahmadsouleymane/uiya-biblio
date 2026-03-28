@@ -22,6 +22,7 @@ import cookieParser from "cookie-parser"
 import morgan from "morgan"
 import rateLimit from "express-rate-limit"
 import { startScheduler } from "./utils/scheduler.js"
+import { initWhatsApp } from "./utils/whatsapp.js"
 
 dotenv.config()
 
@@ -75,6 +76,9 @@ app.get("/health", (_req, res) => {
 })
 
 startScheduler()
+
+// Démarrer le bot WhatsApp automatiquement (se reconnecte si session existante)
+initWhatsApp().catch(err => console.error("[WhatsApp] Erreur auto-init:", err))
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)

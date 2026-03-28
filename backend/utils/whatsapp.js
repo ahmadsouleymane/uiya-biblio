@@ -11,26 +11,20 @@ let qrCodeData = null;
 let status = "disconnected"; // disconnected | qr_pending | ready | error
 
 /**
- * Formater un numéro pour WhatsApp (Côte d'Ivoire = 225)
- * 0701234567 → 2250701234567@s.whatsapp.net
+ * Formater un numéro pour WhatsApp
+ * Le numéro est envoyé tel quel (avec le 0 au début)
+ * Baileys veut : 2250XXXXXXXXX@s.whatsapp.net
  */
 function formatPhone(phone) {
   let cleaned = phone.replace(/[^\d]/g, "");
 
-  // +2250701234567 ou 002250701234567 → 2250701234567
-  if (cleaned.startsWith("00225")) {
-    cleaned = cleaned.slice(2);
-  }
-  // 0701234567 → 2250701234567 (garder le 0, c'est obligatoire en CI)
-  else if (cleaned.startsWith("0")) {
-    cleaned = "225" + cleaned;
-  }
-  // 701234567 (sans 0 ni indicatif) → 2250701234567
-  else if (!cleaned.startsWith("225")) {
-    cleaned = "2250" + cleaned;
+  // S'assurer que le numéro commence par 0
+  if (!cleaned.startsWith("0")) {
+    cleaned = "0" + cleaned;
   }
 
-  return cleaned + "@s.whatsapp.net";
+  // Ajouter l'indicatif 225 devant le numéro complet (avec le 0)
+  return "225" + cleaned + "@s.whatsapp.net";
 }
 
 export function getWhatsAppStatus() {
@@ -43,7 +37,6 @@ export async function initWhatsApp() {
   try {
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
-    // Récupérer la dernière version du protocole WhatsApp
     const { version } = await fetchLatestBaileysVersion();
     console.log("[WhatsApp] Version WA:", version.join("."));
 
@@ -107,6 +100,22 @@ export function destroyWhatsApp() {
   }
   status = "disconnected";
   qrCodeData = null;
+}
+
+/**
+ * Vérifier si un numéro est enregistré sur WhatsApp
+ * Retourne : true (sur WhatsApp), false (pas sur WhatsApp), null (bot non connecté)
+ */
+export async function checkWhatsAppNumber(phone) {
+  if (status !== "ready" || !socket) return null;
+  try {
+    const jid = formatPhone(phone);
+    const [result] = await socket.onWhatsApp(jid);
+    return result?.exists || false;
+  } catch (err) {
+    console.error("[WhatsApp] Erreur vérification:", err.message);
+    return null;
+  }
 }
 
 async function sendMessage(phone, message) {

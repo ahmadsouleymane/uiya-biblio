@@ -3,6 +3,7 @@ import {
   initWhatsApp,
   destroyWhatsApp,
   sendCustomWhatsApp,
+  checkWhatsAppNumber,
 } from "../utils/whatsapp.js";
 import User from "../models/user.model.js";
 
@@ -51,6 +52,25 @@ export const sendTestMessage = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+export const checkPhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: "Numéro requis" });
+
+    const result = await checkWhatsAppNumber(phone);
+
+    if (result === null) {
+      // Bot non connecté — on ne peut pas vérifier
+      return res.status(503).json({ isWhatsApp: null, message: "Le service de vérification WhatsApp est indisponible. Veuillez réessayer plus tard." });
+    }
+
+    res.status(200).json({ isWhatsApp: result });
+  } catch (err) {
+    console.error(err);
+    res.status(503).json({ isWhatsApp: null, message: "Erreur de vérification WhatsApp" });
   }
 };
 
