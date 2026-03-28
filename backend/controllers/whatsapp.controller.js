@@ -5,19 +5,11 @@ import {
   sendCustomWhatsApp,
 } from "../utils/whatsapp.js";
 import User from "../models/user.model.js";
-import QRCode from "qrcode";
 
 export const getStatus = async (req, res) => {
   try {
     const { status, qrCode } = getWhatsAppStatus();
-    let qrImage = null;
-
-    // Convertir le QR string en image base64 pour l'afficher dans le frontend
-    if (qrCode) {
-      qrImage = await QRCode.toDataURL(qrCode);
-    }
-
-    res.status(200).json({ status, qrCode: qrImage });
+    res.status(200).json({ status, qrCode });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erreur serveur" });
@@ -26,7 +18,7 @@ export const getStatus = async (req, res) => {
 
 export const connect = async (req, res) => {
   try {
-    initWhatsApp();
+    await initWhatsApp();
     res.status(200).json({ message: "Initialisation du bot WhatsApp en cours..." });
   } catch (err) {
     console.error(err);
@@ -80,7 +72,6 @@ export const sendBulkMessage = async (req, res) => {
       const ok = await sendCustomWhatsApp(user.phone, personalMessage);
       if (ok) sent++;
       else failed++;
-      // Pause pour éviter le spam
       await new Promise((r) => setTimeout(r, 1500));
     }
 
