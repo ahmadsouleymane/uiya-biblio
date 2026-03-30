@@ -1,13 +1,11 @@
 import { useNavigate } from "react-router-dom"
 import logoUrl from "../assets/logo.svg"
 import { ArrowLeft, BookOpen, Users, Clock, Eye, EyeOff, User, Mail, Phone, GraduationCap } from "lucide-react"
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import toast from "react-hot-toast"
 import { addUser } from "../api/user"
 import { useUser } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
-import { apiFetch } from "../api/_fetch"
-
 const departments = [
   "Informatique option Génie Logiciel", "Droit", "Anglais",
   "Sciences Économiques et de Gestion", "Communication",
@@ -23,35 +21,8 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [phoneCheck, setPhoneCheck] = useState(null) // null | "checking" | true | false
-  const [phoneTimer, setPhoneTimer] = useState(null)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-
-  // Vérifier si le numéro est WhatsApp (avec debounce)
-  const checkWhatsApp = useCallback((phone) => {
-    if (phoneTimer) clearTimeout(phoneTimer)
-
-    const cleaned = phone.replace(/[^\d]/g, "")
-    if (cleaned.length < 10) { setPhoneCheck(null); return }
-
-    setPhoneCheck("checking")
-    const timer = setTimeout(async () => {
-      try {
-        const res = await apiFetch(`${import.meta.env.VITE_API_URL}/whatsapp/check-phone`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleaned }),
-        })
-        const data = await res.json()
-        if (!res.ok || data.isWhatsApp === null) setPhoneCheck("unavailable")
-        else setPhoneCheck(data.isWhatsApp)
-      } catch {
-        setPhoneCheck("unavailable")
-      }
-    }, 800)
-    setPhoneTimer(timer)
-  }, [phoneTimer])
 
   const handleSignup = async () => {
     const { fullName, department, year, email, phone, password, confirmPassword } = form
@@ -59,9 +30,6 @@ export default function SignUp() {
       toast.error("Remplis tous les champs"); return
     }
     if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas"); return }
-    if (phoneCheck === false) { toast.error("Veuillez entrer un numéro WhatsApp valide"); return }
-    if (phoneCheck === "unavailable") { toast.error("La vérification WhatsApp est indisponible, réessayez plus tard"); return }
-    if (phoneCheck !== true) { toast.error("Veuillez attendre la vérification du numéro WhatsApp"); return }
     setLoading(true)
     try {
       const data = await addUser({ fullName, department, year, email, phone, password })
@@ -247,45 +215,18 @@ export default function SignUp() {
               {/* Téléphone */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
-                  Numéro WhatsApp
+                  Téléphone
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "var(--muted)" }} />
                   <input
                     className="input"
-                    style={{ paddingLeft: "2.75rem", borderColor: phoneCheck === false ? "#ef4444" : phoneCheck === true ? "#22c55e" : phoneCheck === "unavailable" ? "#f59e0b" : undefined }}
+                    style={{ paddingLeft: "2.75rem" }}
                     type="number"
                     placeholder="0X XX XX XX XX"
-                    onChange={(e) => {
-                      set("phone")(e)
-                      checkWhatsApp(e.target.value)
-                    }}
+                    onChange={set("phone")}
                   />
-                  {phoneCheck === "checking" && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {phoneCheck === true && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#22c55e" }}>✓</span>
-                  )}
-                  {phoneCheck === false && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#ef4444" }}>✗</span>
-                  )}
                 </div>
-                {phoneCheck === false && (
-                  <p className="text-xs mt-1.5 font-medium" style={{ color: "#ef4444" }}>
-                    Ce numéro n'est pas sur WhatsApp. Veuillez entrer un numéro WhatsApp actif.
-                  </p>
-                )}
-                {phoneCheck === true && (
-                  <p className="text-xs mt-1.5 font-medium" style={{ color: "#22c55e" }}>
-                    Numéro WhatsApp vérifié ✓
-                  </p>
-                )}
-                {phoneCheck === "unavailable" && (
-                  <p className="text-xs mt-1.5 font-medium" style={{ color: "#f59e0b" }}>
-                    Vérification WhatsApp indisponible. Réessayez dans un instant.
-                  </p>
-                )}
               </div>
 
               {/* Mot de passe */}

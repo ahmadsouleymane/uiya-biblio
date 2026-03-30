@@ -16,13 +16,11 @@ import settingsRoutes from "./routes/settings.routes.js"
 import auditRoutes from "./routes/audit.routes.js"
 import notificationRoutes from "./routes/notification.routes.js"
 import categoryRoutes from "./routes/category.routes.js"
-import whatsappRoutes from "./routes/whatsapp.routes.js"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import morgan from "morgan"
 import rateLimit from "express-rate-limit"
 import { startScheduler } from "./utils/scheduler.js"
-import { initWhatsApp } from "./utils/whatsapp.js"
 
 dotenv.config()
 
@@ -68,7 +66,6 @@ app.use("/settings", settingsRoutes)
 app.use("/audit", auditRoutes)
 app.use("/notification", notificationRoutes)
 app.use("/category", categoryRoutes)
-app.use("/whatsapp", whatsappRoutes)
 
 // Health check — uptime monitoring
 app.get("/health", (_req, res) => {
@@ -76,9 +73,6 @@ app.get("/health", (_req, res) => {
 })
 
 startScheduler()
-
-// Démarrer le bot WhatsApp automatiquement (se reconnecte si session existante)
-initWhatsApp().catch(err => console.error("[WhatsApp] Erreur auto-init:", err))
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)

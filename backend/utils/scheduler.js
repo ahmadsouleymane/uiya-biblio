@@ -3,7 +3,6 @@ import Loan from "../models/loan.model.js";
 import LibrarySettings from "../models/librarySettings.model.js";
 import Notification from "../models/notification.model.js";
 import { sendLoanReminderEmail, sendLoanOverdueEmail } from "./email.js";
-import { sendLoanReminderWhatsApp, sendLoanOverdueWhatsApp } from "./whatsapp.js";
 
 const FINE_RATE = 500; // FCFA par jour
 
@@ -36,12 +35,6 @@ export const startScheduler = () => {
           } catch (e) {
             console.error("Erreur email rappel:", e.message);
           }
-          // Rappel WhatsApp
-          if (loan.user.phone) {
-            sendLoanReminderWhatsApp(loan.user.phone, loan.user.fullName, loan.book.title, dueDate).catch(e =>
-              console.error("Erreur WhatsApp rappel:", e.message)
-            );
-          }
           await Notification.create({
             user: loan.user._id,
             type: "loan_due",
@@ -58,12 +51,6 @@ export const startScheduler = () => {
               await sendLoanOverdueEmail(loan.user.email, loan.user.fullName, loan.book.title, daysLate, amount);
             } catch (e) {
               console.error("Erreur email retard:", e.message);
-            }
-            // Retard WhatsApp
-            if (loan.user.phone) {
-              sendLoanOverdueWhatsApp(loan.user.phone, loan.user.fullName, loan.book.title, daysLate, amount).catch(e =>
-                console.error("Erreur WhatsApp retard:", e.message)
-              );
             }
             await Notification.create({
               user: loan.user._id,

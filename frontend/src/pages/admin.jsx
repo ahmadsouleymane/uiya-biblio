@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   BookOpen, Users, ArrowLeftRight, CalendarCheck,
   AlertCircle, CheckCircle, TrendingUp, Clock,
-  Download, FileText, Settings, Shield, Upload, Award, Sparkles, Loader2, MessageCircle,
+  Download, FileText, Settings, Shield, Upload, Award, Sparkles, Loader2,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -637,7 +637,6 @@ export default function Admin() {
               { label: "Import CSV",   desc: "Livres & utilisateurs", icon: <Upload className="w-5 h-5" />,  color: "#2563eb", bg: "rgba(37,99,235,0.08)",    path: "/admin/import" },
               { label: "Paramètres",   desc: "Configuration",     icon: <Settings className="w-5 h-5" />,   color: "#7c3aed", bg: "rgba(124,58,237,0.08)",   path: "/admin/parametres" },
               { label: "Audit",        desc: "Journal d'actions", icon: <Shield className="w-5 h-5" />,     color: chartColor, bg: `${chartAlpha}0.08)`,    path: "/admin/audit" },
-              { label: "WhatsApp",     desc: "Bot & notifications", icon: <MessageCircle className="w-5 h-5" />, color: "#25d366", bg: "rgba(37,211,102,0.08)", path: "/admin/whatsapp" },
             ].map((item, i) => (
               <button key={i} onClick={() => navigate(item.path)}
                 className="card p-4 flex flex-col items-start gap-3 hover:shadow-md transition-all text-left">
