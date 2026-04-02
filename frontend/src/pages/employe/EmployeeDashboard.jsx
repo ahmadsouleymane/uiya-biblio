@@ -6,7 +6,7 @@ import Footer from "../../components/footer"
 import { useUser } from "../../contexts/AuthContext"
 import { useTheme } from "../../contexts/ThemeContext"
 import { getTodayPresence } from "../../api/presence"
-import { getAllLoans } from "../../api/loan"
+import { getAllLoans, getDashboardStats } from "../../api/loan"
 
 export default function EmployeeDashboard() {
   const { user } = useUser()
@@ -22,7 +22,7 @@ export default function EmployeeDashboard() {
     Promise.all([
       getTodayPresence(),
       getAllLoans(),
-      fetch(`${import.meta.env.VITE_API_URL}/loan/dashboard-stats`, { credentials: "include" }).then(r => r.json()),
+      getDashboardStats(),
     ])
       .then(([p, l, ds]) => {
         setPresences(Array.isArray(p) ? p : [])

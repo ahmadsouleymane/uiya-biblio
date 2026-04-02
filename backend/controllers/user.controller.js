@@ -8,7 +8,7 @@ import { sendResetPasswordEmail, sendWelcomeEmail } from "../utils/email.js";
 import { parse } from "csv-parse/sync";
 
 const generateToken = (user) => {
-  return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 };
 
 export const addUser = async (req, res) => {

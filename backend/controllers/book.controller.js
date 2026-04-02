@@ -4,6 +4,10 @@ import AuditLog from "../models/auditLog.model.js";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.join(__dirname, "..", "uploads");
 
 export const generateDescription = async (req, res) => {
   try {
@@ -336,7 +340,7 @@ export const uploadBookPdf = async (req, res) => {
 
     // Supprimer l'ancien PDF s'il existe
     if (book.pdfFile) {
-      const oldPath = path.join("uploads", path.basename(book.pdfFile));
+      const oldPath = path.join(uploadsDir, path.basename(book.pdfFile));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
@@ -355,7 +359,7 @@ export const deleteBookPdf = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     if (!book.pdfFile) return res.status(400).json({ message: "Aucun PDF associé" });
 
-    const filePath = path.join("uploads", path.basename(book.pdfFile));
+    const filePath = path.join(uploadsDir, path.basename(book.pdfFile));
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     book.pdfFile = undefined;

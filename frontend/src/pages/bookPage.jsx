@@ -5,6 +5,7 @@ import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
 import { getBookReviews, upsertReview, deleteReview } from "../api/review"
 import { addFavorite, removeFavorite } from "../api/user"
+import { getSettings } from "../api/settings"
 import { useUser } from "../contexts/AuthContext"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
@@ -58,8 +59,8 @@ export default function BookPage() {
 
   useEffect(() => {
     // Charger les paramètres pour la durée d'emprunt
-    fetch(`${import.meta.env.VITE_API_URL}/settings`, { credentials: "include" })
-      .then(r => r.json()).then(d => { if (d.loanDurationDays) setLoanDays(d.loanDurationDays) }).catch(() => {})
+    getSettings()
+      .then(d => { if (d.loanDurationDays) setLoanDays(d.loanDurationDays) }).catch(() => {})
   }, [])
 
   useEffect(() => {

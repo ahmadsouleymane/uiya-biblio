@@ -13,6 +13,7 @@ import { useUser } from "../contexts/AuthContext"
 import { logout, getUserStats } from "../api/user"
 import { getUserLoans } from "../api/loan"
 import { getFavorites, removeFavorite } from "../api/user"
+import { getSettings } from "../api/settings"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import { useTheme } from "../contexts/ThemeContext"
@@ -49,8 +50,8 @@ export default function Profile() {
   const [loanDays, setLoanDays] = useState(14)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/settings`, { credentials: "include" })
-      .then(r => r.json()).then(d => { if (d.loanDurationDays) setLoanDays(d.loanDurationDays) }).catch(() => {})
+    getSettings()
+      .then(d => { if (d.loanDurationDays) setLoanDays(d.loanDurationDays) }).catch(() => {})
   }, [])
 
   useEffect(() => {

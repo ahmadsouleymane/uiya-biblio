@@ -2,7 +2,13 @@ import express from "express"
 import { fileURLToPath } from "url"
 import path from "path"
 
+import fs from "fs"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Créer le dossier uploads s'il n'existe pas
+const uploadsDir = path.join(__dirname, "uploads")
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
+
 import connectDB from "./config/db.js"
 import dotenv from "dotenv"
 import userRoutes from "./routes/user.routes.js"

@@ -19,3 +19,6 @@ export const returnByUserAndIsbn = (userId, isbn) =>
 
 export const renewLoan = (loanId) =>
   apiFetch(`${API}/${loanId}/renew`, { ...opts, method: "PUT" }).then(r => r.json())
+
+export const getDashboardStats = () =>
+  apiFetch(`${API}/dashboard-stats`, { method: "GET" }).then(r => r.json())
