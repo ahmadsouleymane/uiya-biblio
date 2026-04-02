@@ -2,6 +2,8 @@ import Book from "../models/book.model.js";
 import Loan from "../models/loan.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import { parse } from "csv-parse/sync";
+import fs from "fs";
+import path from "path";
 
 export const generateDescription = async (req, res) => {
   try {
@@ -26,7 +28,7 @@ export const generateDescription = async (req, res) => {
   }
 };
 
-const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "digitalUrl"];
+const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "digitalUrl", "pdfFile"];
 
 // Helper pour générer une description via Groq
 async function fetchAiDescription(title, author) {
@@ -323,6 +325,45 @@ export const generateAllDescriptions = async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+export const uploadBookPdf = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "Fichier PDF requis" });
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: "Livre introuvable" });
+
+    // Supprimer l'ancien PDF s'il existe
+    if (book.pdfFile) {
+      const oldPath = path.join("uploads", path.basename(book.pdfFile));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    book.pdfFile = `/uploads/${req.file.filename}`;
+    await book.save();
+    res.status(200).json({ message: "PDF ajouté", pdfFile: book.pdfFile });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Erreur lors de l'upload du PDF" });
+  }
+};
+
+export const deleteBookPdf = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: "Livre introuvable" });
+    if (!book.pdfFile) return res.status(400).json({ message: "Aucun PDF associé" });
+
+    const filePath = path.join("uploads", path.basename(book.pdfFile));
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    book.pdfFile = undefined;
+    await book.save();
+    res.status(200).json({ message: "PDF supprimé" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Erreur lors de la suppression du PDF" });
   }
 };
 

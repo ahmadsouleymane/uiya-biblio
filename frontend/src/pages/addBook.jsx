@@ -4,8 +4,8 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles } from "lucide-react"
-import { addBook, generateBookDescription } from "../api/book"
+import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText } from "lucide-react"
+import { addBook, generateBookDescription, uploadBookPdf } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
 
@@ -42,6 +42,7 @@ export default function AddBook() {
   const dark = theme === "dark"
   const scanVideoRef = useRef(null)
   const coverVideoRef = useRef(null)
+  const coverFileRef = useRef(null)
 
   const [step, setStep] = useState("method") // method | scan | form | cover-cam | done
   const [form, setForm] = useState(EMPTY_FORM)
@@ -49,6 +50,8 @@ export default function AddBook() {
   const [errors, setErrors] = useState({})
   const [categories, setCategories] = useState([])
   const [generating, setGenerating] = useState(false)
+  const [pdfFile, setPdfFile] = useState(null)
+  const pdfFileRef = useRef(null)
 
   useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
@@ -157,6 +160,15 @@ export default function AddBook() {
     setStep("form")
   }
 
+  const handleCoverUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => { setField("cover", reader.result) }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
   // ── Génération IA de description ──────────────────────────────────
   const handleGenerateDescription = async () => {
     if (!form.title.trim() || !form.author.trim()) {
@@ -214,8 +226,13 @@ export default function AddBook() {
         location:    form.location.trim(),
         digitalUrl:  form.digitalUrl.trim(),
       })
-      if (data.book) { setStep("done") }
-      else toast.error(data.message || "Erreur lors de l'ajout")
+      if (data.book) {
+        if (pdfFile) {
+          try { await uploadBookPdf(data.book._id, pdfFile) }
+          catch { toast.error("Livre ajouté mais erreur lors de l'upload du PDF") }
+        }
+        setStep("done")
+      } else toast.error(data.message || "Erreur lors de l'ajout")
     } catch {
       toast.error("Erreur serveur")
     } finally {
@@ -369,6 +386,24 @@ export default function AddBook() {
 
                 <Field k="digitalUrl" placeholder="URL ressource numérique (optionnel)" form={form} errors={errors} setField={setField} />
 
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Fichier PDF du livre (optionnel)</label>
+                  <input type="file" accept="application/pdf" ref={pdfFileRef} className="hidden" onChange={e => setPdfFile(e.target.files?.[0] || null)} />
+                  {pdfFile ? (
+                    <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "var(--bg-card)" }}>
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm truncate flex-1">{pdfFile.name}</span>
+                      <button type="button" onClick={() => { setPdfFile(null); if (pdfFileRef.current) pdfFileRef.current.value = "" }} className="text-xs" style={{ color: "#e11d48" }}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => pdfFileRef.current?.click()} className="btn btn-ghost w-full">
+                      <Upload className="w-4 h-4" /> Ajouter un PDF
+                    </button>
+                  )}
+                </div>
+
                 <button onClick={handleSave} disabled={loading} className="btn btn-primary btn-lg w-full mt-2">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sauvegarder le livre"}
                 </button>
@@ -386,9 +421,16 @@ export default function AddBook() {
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    <input type="file" accept="image/*" ref={coverFileRef} className="hidden" onChange={handleCoverUpload} />
+                    <button
+                      onClick={() => coverFileRef.current?.click()}
+                      className={`btn btn-primary w-full ${errors.cover ? "ring-2 ring-red-400" : ""}`}
+                    >
+                      <Upload className="w-4 h-4" /> Téléverser une image
+                    </button>
                     <button
                       onClick={() => setStep("cover-cam")}
-                      className={`btn btn-primary w-full ${errors.cover ? "ring-2 ring-red-400" : ""}`}
+                      className="btn btn-ghost w-full"
                     >
                       <Camera className="w-4 h-4" /> Photographier la couverture
                     </button>

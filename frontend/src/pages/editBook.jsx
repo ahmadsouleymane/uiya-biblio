@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom"
 import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
-import { ArrowLeft, Camera, Loader2, X, Save } from "lucide-react"
-import { getBookById, updateBook } from "../api/book"
+import { ArrowLeft, Camera, Loader2, X, Save, Upload, FileText, Trash2 } from "lucide-react"
+import { getBookById, updateBook, uploadBookPdf, deleteBookPdf } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
 
@@ -34,6 +34,7 @@ export default function EditBook() {
   const navigate = useNavigate()
   const { theme } = useTheme()
   const coverVideoRef = useRef(null)
+  const coverFileRef = useRef(null)
 
   const [step, setStep] = useState("form") // form | cover-cam
   const [form, setForm] = useState({
@@ -46,6 +47,9 @@ export default function EditBook() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [categories, setCategories] = useState([])
+  const [pdfFile, setPdfFile] = useState(null)
+  const [uploadingPdf, setUploadingPdf] = useState(false)
+  const pdfFileRef = useRef(null)
 
   // Charger le livre et les catégories
   useEffect(() => {
@@ -110,6 +114,39 @@ export default function EditBook() {
     setForm((prev) => ({ ...prev, cover: canvas.toDataURL("image/jpeg", 0.85) }))
     video.srcObject?.getTracks().forEach((t) => t.stop())
     setStep("form")
+  }
+
+  const handleCoverUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => { setField("cover", reader.result) }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPdf(true)
+    try {
+      const data = await uploadBookPdf(id, file)
+      if (data.pdfFile) {
+        setOriginalBook(prev => ({ ...prev, pdfFile: data.pdfFile }))
+        toast.success("PDF ajouté !")
+      } else toast.error(data.message || "Erreur upload PDF")
+    } catch { toast.error("Erreur upload PDF") }
+    finally { setUploadingPdf(false); if (pdfFileRef.current) pdfFileRef.current.value = "" }
+  }
+
+  const handleDeletePdf = async () => {
+    setUploadingPdf(true)
+    try {
+      await deleteBookPdf(id)
+      setOriginalBook(prev => ({ ...prev, pdfFile: undefined }))
+      toast.success("PDF supprimé")
+    } catch { toast.error("Erreur suppression PDF") }
+    finally { setUploadingPdf(false) }
   }
 
   const validate = () => {
@@ -252,6 +289,28 @@ export default function EditBook() {
 
                 <Field k="digitalUrl" placeholder="URL ressource numérique (optionnel)" form={form} errors={errors} setField={setField} />
 
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Fichier PDF du livre (optionnel)</label>
+                  <input type="file" accept="application/pdf" ref={pdfFileRef} className="hidden" onChange={handlePdfUpload} />
+                  {originalBook?.pdfFile ? (
+                    <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "var(--bg-card)" }}>
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm truncate flex-1">PDF associé</span>
+                      <button type="button" onClick={() => pdfFileRef.current?.click()} disabled={uploadingPdf} className="text-xs font-medium text-primary">
+                        {uploadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Remplacer"}
+                      </button>
+                      <button type="button" onClick={handleDeletePdf} disabled={uploadingPdf} className="text-xs" style={{ color: "#e11d48" }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => pdfFileRef.current?.click()} disabled={uploadingPdf} className="btn btn-ghost w-full">
+                      {uploadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {uploadingPdf ? "Upload…" : "Ajouter un PDF"}
+                    </button>
+                  )}
+                </div>
+
                 <button onClick={handleSave} disabled={saving} className="btn btn-primary btn-lg w-full mt-2">
                   {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Enregistrer les modifications</>}
                 </button>
@@ -260,10 +319,14 @@ export default function EditBook() {
               {/* Couverture — sidebar */}
               <div className="lg:col-span-1 card-p space-y-4 mt-4 lg:mt-0">
                 <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Couverture *</p>
+                <input type="file" accept="image/*" ref={coverFileRef} className="hidden" onChange={handleCoverUpload} />
                 {form.cover ? (
                   <div className="flex flex-col items-center gap-3">
                     <img src={form.cover} alt="cover" className="w-32 rounded-xl object-cover aspect-[2/3] shadow-md" />
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <button onClick={() => coverFileRef.current?.click()} className="flex items-center gap-1 text-xs font-medium text-primary">
+                        <Upload className="w-3 h-3" /> Changer
+                      </button>
                       <button onClick={() => setStep("cover-cam")} className="flex items-center gap-1 text-xs font-medium text-primary">
                         <Camera className="w-3 h-3" /> Reprendre
                       </button>
@@ -275,8 +338,14 @@ export default function EditBook() {
                 ) : (
                   <div className="space-y-3">
                     <button
-                      onClick={() => setStep("cover-cam")}
+                      onClick={() => coverFileRef.current?.click()}
                       className={`btn btn-primary w-full ${errors.cover ? "ring-2 ring-red-400" : ""}`}
+                    >
+                      <Upload className="w-4 h-4" /> Téléverser une image
+                    </button>
+                    <button
+                      onClick={() => setStep("cover-cam")}
+                      className="btn btn-ghost w-full"
                     >
                       <Camera className="w-4 h-4" /> Photographier la couverture
                     </button>

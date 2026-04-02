@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Link2, Clock, BookMarked, Pencil } from "lucide-react"
-import { useState, useEffect } from "react"
+import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Link2, Clock, BookMarked, Pencil, FileText } from "lucide-react"
+import { useState, useEffect, lazy, Suspense } from "react"
 import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
 import { getBookReviews, upsertReview, deleteReview } from "../api/review"
@@ -10,6 +10,8 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import { useTheme } from "../contexts/ThemeContext"
 import toast from "react-hot-toast"
+
+const PdfViewer = lazy(() => import("../components/PdfViewer"))
 
 function StarRating({ rating = 0, interactive = false, onRate }) {
   const [hovered, setHovered] = useState(0)
@@ -52,6 +54,7 @@ export default function BookPage() {
   const [myComment, setMyComment] = useState("")
   const [submittingReview, setSubmittingReview] = useState(false)
   const [loanDays, setLoanDays] = useState(14)
+  const [showPdf, setShowPdf] = useState(false)
 
   useEffect(() => {
     // Charger les paramètres pour la durée d'emprunt
@@ -275,6 +278,33 @@ export default function BookPage() {
                 Accéder
               </a>
             </div>
+          )}
+
+          {/* PDF du livre */}
+          {book.pdfFile && (
+            <div className="rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.18)" }}>
+              <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(34,197,94,0.15)" }}>
+                  <FileText className="w-5 h-5" style={{ color: "#22c55e" }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm" style={{ color: "var(--fg)" }}>Version numérique disponible</p>
+                  <p className="text-xs" style={{ color: "#22c55e" }}>Lisez ce livre directement dans l'application</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPdf(true)} className="btn btn-sm text-white shrink-0 w-full sm:w-auto text-center" style={{ background: "#16a34a" }}>
+                <BookOpen className="w-4 h-4" /> Lire le PDF
+              </button>
+            </div>
+          )}
+
+          {showPdf && book.pdfFile && (
+            <Suspense fallback={null}>
+              <PdfViewer
+                url={`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${book.pdfFile}`}
+                onClose={() => setShowPdf(false)}
+              />
+            </Suspense>
           )}
 
           {/* Section Avis */}

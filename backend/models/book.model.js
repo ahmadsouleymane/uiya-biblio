@@ -58,6 +58,9 @@ const bookSchema = new mongoose.Schema({
   digitalUrl: {
     type: String
   },
+  pdfFile: {
+    type: String
+  },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

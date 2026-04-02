@@ -42,6 +42,15 @@ export const generateBookDescription = (title, author) =>
 export const generateAllBookDescriptions = () =>
   apiFetch(`${API}/generate-all-descriptions`, { ...opts, method: "POST" }).then(r => r.json())
 
+export const uploadBookPdf = (bookId, file) => {
+  const formData = new FormData()
+  formData.append("pdf", file)
+  return apiFetch(`${API}/${bookId}/upload-pdf`, { method: "POST", body: formData }).then(r => r.json())
+}
+
+export const deleteBookPdf = (bookId) =>
+  apiFetch(`${API}/${bookId}/pdf`, { method: "DELETE" }).then(r => r.json())
+
 export const importBooksCsv = (file) => {
   const formData = new FormData()
   formData.append("file", file)
