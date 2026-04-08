@@ -98,7 +98,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
         <div className="w-full px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Tous droits réservés - Fait par <a className="text-secondary font-bold cursor-pointer">AHMAD</a> </p>
+          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Tous droits réservés - Fait par <a href="https://justmaley.vercel.app/" className="text-secondary font-bold cursor-pointer">JustMaley</a> </p>
         </div>
       </div>
     </footer>
