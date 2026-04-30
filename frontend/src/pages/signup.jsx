@@ -144,7 +144,7 @@ export default function SignUp() {
             </div>
 
             {/* Champs */}
-            <div className="space-y-4">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
               {/* Nom complet */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
@@ -280,25 +280,18 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* Bouton */}
+              {/* Bouton inscription */}
               <button
-                onClick={handleSignup}
+                type="submit"
                 disabled={loading}
-                className="btn btn-primary btn-lg w-full"
-                style={{ marginTop: "0.25rem" }}
+                className="btn btn-primary btn-lg w-full mt-2"
+                style={{ marginTop: "0.75rem" }}
               >
                 {loading
                   ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   : "Créer mon compte"}
               </button>
-            </div>
-
-            {/* Séparateur */}
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px" style={{ background: "var(--border-md)" }} />
-              <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>OU</span>
-              <div className="flex-1 h-px" style={{ background: "var(--border-md)" }} />
-            </div>
+            </form>
 
             {/* Connexion */}
             <p className="text-center text-sm" style={{ color: "var(--muted)" }}>

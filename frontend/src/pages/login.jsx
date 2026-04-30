@@ -133,7 +133,7 @@ export default function Login() {
             </div>
 
             {/* Champs */}
-            <div className="space-y-4">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
               {/* Téléphone */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
@@ -144,8 +144,8 @@ export default function Login() {
                   <input
                     className="input"
                     style={{ paddingLeft: "2.75rem" }}
-                    type="number"
-                    placeholder="0X XX XX XX XX"
+                    type="text"
+                    placeholder="admin ou user"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     autoFocus
@@ -164,7 +164,7 @@ export default function Login() {
                     className="input"
                     style={{ paddingLeft: "2.75rem", paddingRight: "3rem" }}
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="admin ou user"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleLogin()}
@@ -180,6 +180,7 @@ export default function Login() {
                 </div>
                 <div className="flex justify-end mt-2">
                   <button
+                    type="button"
                     onClick={() => navigate("/mot-de-passe-oublie")}
                     className="text-xs font-semibold transition-colors"
                     style={{ color: "#A71E3C" }}
@@ -193,7 +194,7 @@ export default function Login() {
 
               {/* Bouton connexion */}
               <button
-                onClick={handleLogin}
+                type="submit"
                 disabled={loading}
                 className="btn btn-primary btn-lg w-full mt-2"
                 style={{ marginTop: "0.75rem" }}
@@ -202,7 +203,7 @@ export default function Login() {
                   ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   : "Se connecter"}
               </button>
-            </div>
+            </form>
 
             {/* Séparateur */}
             <div className="flex items-center gap-4 my-8">
