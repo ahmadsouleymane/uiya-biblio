@@ -166,8 +166,8 @@ export default function BookPage() {
     </div>
   )
 
-  const availabilityPct = Math.round((book.availableCopies / book.copies) * 100)
-  const myReview = reviews.find(r => r.user?._id === user?._id)
+  const availabilityPct = book.copies > 0 ? Math.round((book.availableCopies / book.copies) * 100) : 0
+  const myReview = user ? reviews.find(r => r.user?._id === user._id) : null
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">

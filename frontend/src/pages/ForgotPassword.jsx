@@ -15,7 +15,9 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false)
 
   const handleSubmit = async () => {
+    if (loading) return
     if (!email) { toast.error("Entrez votre email"); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Email invalide"); return }
     setLoading(true)
     try {
       await forgotPassword(email)

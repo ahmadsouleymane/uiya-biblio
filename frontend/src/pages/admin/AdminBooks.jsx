@@ -25,13 +25,17 @@ export default function AdminBooks() {
   }, [search])
 
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`Supprimer "${title}" ?`)) return
-    const data = await deleteBook(id)
-    if (data.message?.includes("supprimé")) {
-      toast.success("Livre supprimé")
-      setBooks(prev => prev.filter(b => b._id !== id))
-    } else {
-      toast.error(data.message || "Erreur")
+    if (!window.confirm(`Supprimer "${title || "ce livre"}" ?`)) return
+    try {
+      const data = await deleteBook(id)
+      if (data.message?.includes("supprimé")) {
+        toast.success("Livre supprimé")
+        setBooks(prev => prev.filter(b => b._id !== id))
+      } else {
+        toast.error(data.message || "Erreur")
+      }
+    } catch {
+      toast.error("Erreur serveur")
     }
   }
 

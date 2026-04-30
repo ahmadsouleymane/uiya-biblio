@@ -15,7 +15,9 @@ export default function AdminImport() {
   const [result, setResult] = useState(null)
 
   const handleImport = async () => {
+    if (loading) return
     if (!file) { toast.error("Sélectionnez un fichier CSV"); return }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 10 MB)"); return }
     setLoading(true)
     setResult(null)
     try {
@@ -74,7 +76,7 @@ export default function AdminImport() {
               <Upload className="w-8 h-8 text-muted mb-2" />
               <p className="text-sm font-semibold">{file ? file.name : "Cliquez ou glissez un fichier CSV"}</p>
               <p className="text-xs text-muted mt-1">CSV uniquement, max 10 MB</p>
-              <input type="file" accept=".csv" className="hidden" onChange={e => setFile(e.target.files[0])} />
+              <input type="file" accept=".csv" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
             </label>
           </div>
 

@@ -25,10 +25,13 @@ export default function SignUp() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const handleSignup = async () => {
+    if (loading) return
     const { fullName, department, year, email, phone, password, confirmPassword } = form
     if (!fullName || !department || !year || !email || !phone || !password || !confirmPassword) {
       toast.error("Remplis tous les champs"); return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Email invalide"); return }
+    if (password.length < 6) { toast.error("Mot de passe : 6 caractères minimum"); return }
     if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas"); return }
     setLoading(true)
     try {

@@ -59,8 +59,10 @@ export default function AdminFines() {
 
   const handleCreate = async () => {
     if (!form.userId || !form.amount) { toast.error("Utilisateur et montant requis"); return }
+    const amount = Number(form.amount)
+    if (!Number.isFinite(amount) || amount <= 0) { toast.error("Montant invalide"); return }
     try {
-      await createManualFine({ userId: form.userId, amount: Number(form.amount), reason: form.reason })
+      await createManualFine({ userId: form.userId, amount, reason: form.reason })
       toast.success("Amende créée")
       setShowCreate(false)
       setForm({ userId: "", amount: "", reason: "" })

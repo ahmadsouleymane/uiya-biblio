@@ -19,8 +19,10 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false)
 
   const handleSubmit = async () => {
+    if (loading) return
     if (!password || password.length < 6) { toast.error("Le mot de passe doit faire au moins 6 caractères"); return }
     if (password !== confirm) { toast.error("Les mots de passe ne correspondent pas"); return }
+    if (!token) { toast.error("Lien invalide"); return }
     setLoading(true)
     try {
       const data = await resetPassword(token, password)

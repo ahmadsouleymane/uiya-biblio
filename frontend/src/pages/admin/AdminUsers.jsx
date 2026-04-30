@@ -29,25 +29,33 @@ export default function AdminUsers() {
 
   const handleDelete = async (id) => {
     const user = users.find(u => u._id === id)
-    if (!window.confirm(`Supprimer définitivement le compte de "${user?.fullName}" ?`)) return
-    const data = await deleteUser(id)
-    if (data.message?.includes("supprimé")) {
-      toast.success("Compte supprimé")
-      setUsers(prev => prev.filter(u => u._id !== id))
-    } else {
-      toast.error(data.message || "Erreur")
+    if (!window.confirm(`Supprimer définitivement le compte de "${user?.fullName || "cet utilisateur"}" ?`)) return
+    try {
+      const data = await deleteUser(id)
+      if (data.message?.includes("supprimé")) {
+        toast.success("Compte supprimé")
+        setUsers(prev => prev.filter(u => u._id !== id))
+      } else {
+        toast.error(data.message || "Erreur")
+      }
+    } catch {
+      toast.error("Erreur serveur")
     }
   }
 
   const handleRoleChange = async (id, role, currentRole) => {
     const user = users.find(u => u._id === id)
     const roleLabelMap = { student: "Étudiant", employee: "Employé", admin: "Admin" }
-    if (!window.confirm(`Changer le rôle de ${user?.fullName} de "${roleLabelMap[currentRole]}" à "${roleLabelMap[role]}" ?`)) return
-    const data = await updateUserRole(id, role)
-    if (data._id) {
-      toast.success("Rôle mis à jour")
-      setUsers(prev => prev.map(u => u._id === id ? { ...u, role } : u))
-    } else toast.error(data.message || "Erreur")
+    if (!window.confirm(`Changer le rôle de ${user?.fullName || "l'utilisateur"} de "${roleLabelMap[currentRole]}" à "${roleLabelMap[role]}" ?`)) return
+    try {
+      const data = await updateUserRole(id, role)
+      if (data._id) {
+        toast.success("Rôle mis à jour")
+        setUsers(prev => prev.map(u => u._id === id ? { ...u, role } : u))
+      } else toast.error(data.message || "Erreur")
+    } catch {
+      toast.error("Erreur serveur")
+    }
   }
 
   const filtered = users.filter(u =>
@@ -110,7 +118,7 @@ export default function AdminUsers() {
           <>
             <div className="row-list">
               {paginated.map(u => {
-                const initials = u.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+                const initials = (u.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
                 const r = roleConfig[u.role] || roleConfig.student
                 return (
                   <div key={u._id} className="row-item flex-wrap gap-y-2">

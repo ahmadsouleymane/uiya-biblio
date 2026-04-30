@@ -247,7 +247,7 @@ export default function Navbar() {
                   onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
                 >
                   <User className="w-4 h-4" />
-                  {user.fullName.split(' ')[0]}
+                  {(user.fullName || "Profil").split(' ')[0]}
                 </button>
                 <button
                   onClick={handleLogout}
@@ -361,7 +361,7 @@ export default function Navbar() {
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black"
                   style={{ background: "#A71E3C", fontSize: "0.7rem" }}
                 >
-                  {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  {(user.fullName || "?").split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
                 </button>
               </>
             ) : (

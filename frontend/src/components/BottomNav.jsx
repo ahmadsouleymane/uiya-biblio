@@ -35,6 +35,7 @@ export default function BottomNav() {
   const { user } = useUser()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { theme } = useTheme()
 
   const visible = !!user && !HIDDEN_ROUTES.includes(pathname) && !pathname.startsWith("/reinitialiser-mdp")
 
@@ -44,7 +45,6 @@ export default function BottomNav() {
 
   if (!visible) return null
 
-  const { theme } = useTheme()
   const items = navByRole[user.role] || navByRole.student
   const isActive = (to) => pathname === to
   const dark = theme === "dark"

@@ -164,12 +164,10 @@ export default function EditBook() {
   }
 
   const handleSave = async () => {
+    if (saving) return
     if (!validate()) { toast.error("Corrigez les erreurs"); return }
     setSaving(true)
     try {
-      const copiesDiff = Number(form.copies) - (originalBook?.copies || 0)
-      const newAvailable = Math.max(0, (originalBook?.availableCopies || 0) + copiesDiff)
-
       const data = await updateBook(id, {
         isbn:       form.isbn.trim(),
         title:      form.title.trim(),
@@ -180,7 +178,6 @@ export default function EditBook() {
         category:   form.category,
         cover:      form.cover.trim(),
         copies:     Number(form.copies),
-        availableCopies: newAvailable,
         description: form.description.trim(),
         condition:   form.condition,
         location:    form.location.trim(),

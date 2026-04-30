@@ -43,7 +43,7 @@ function Scanner({ onResult, onCancel, label }) {
 
 // ─── Carte utilisateur ─────────────────────────────────────────────
 function UserCard({ user, onClear }) {
-  const initials = user.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+  const initials = (user.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
   return (
     <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: "var(--border)", border: "1px solid var(--border-md)" }}>
       <div className="avatar avatar-md">{initials}</div>
@@ -138,6 +138,10 @@ export default function EmployeeLoan() {
 
   const handleUserQr = async (userId) => {
     setScanType(null)
+    if (!/^[a-f0-9]{24}$/i.test(userId)) {
+      toast.error("QR code invalide")
+      return
+    }
     try {
       const user = await getUserById(userId)
       if (user._id) {
@@ -170,6 +174,7 @@ export default function EmployeeLoan() {
   const dismissFine = () => setFineAlert(null)
 
   const handleBorrow = async () => {
+    if (loading) return
     if (!scannedUser || !scannedBook) return
     setLoading(true)
     try {
@@ -195,6 +200,7 @@ export default function EmployeeLoan() {
   }
 
   const handleReturnByIsbn = async () => {
+    if (loading) return
     if (!scannedUser || !scannedBook) return
     setLoading(true)
     try {
@@ -206,6 +212,7 @@ export default function EmployeeLoan() {
   }
 
   const handleReturnFromList = async (loan) => {
+    if (loading) return
     const { returnBook: ret } = await import("../../api/loan")
     setLoading(true)
     try {

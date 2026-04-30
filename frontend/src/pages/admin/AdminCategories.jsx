@@ -28,6 +28,7 @@ export default function AdminCategories() {
   )
 
   const handleAdd = async () => {
+    if (adding) return
     if (!newName.trim()) return
     setAdding(true)
     try {
@@ -47,6 +48,7 @@ export default function AdminCategories() {
   }
 
   const handleUpdate = async (id) => {
+    if (saving) return
     if (!editName.trim()) return
     setSaving(true)
     try {

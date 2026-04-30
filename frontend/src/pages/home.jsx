@@ -145,6 +145,7 @@ export default function Home() {
 
   const handleRegister = async (eventId) => {
     if (!user) { navigate("/inscription"); return; }
+    if (registering) return;
     setRegistering(true);
     try {
       const isRegistered = registeredIds.includes(eventId);

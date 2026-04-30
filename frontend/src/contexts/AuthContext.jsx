@@ -29,7 +29,7 @@ function loadCache() {
 export default function UserProvider({ children }) {
   const cached = loadCache()
   const [user, setUserState] = useState(cached)
-  const [loading, setLoading] = useState(!cached)
+  const [loading, setLoading] = useState(true)
 
   const setUser = (u) => {
     setUserState(u)
@@ -37,7 +37,8 @@ export default function UserProvider({ children }) {
   }
 
   useEffect(() => {
-    // Pas de token → pas de session → on garde le cache si offline
+    let cancelled = false
+    // Pas de token → pas de session → on invalide le cache (sauf offline)
     if (!getToken()) {
       if (cached) setUser(null)
       setLoading(false)
@@ -46,11 +47,21 @@ export default function UserProvider({ children }) {
 
     getMe()
       .then((data) => {
+        if (cancelled) return
         if (data?._id) setUser(data)
-        else if (!cached) setUser(null)
+        else setUser(null) // réponse mais pas de user → token invalide
       })
-      .catch(() => { /* offline ou timeout → on garde le cache */ })
-      .finally(() => setLoading(false))
+      .catch((err) => {
+        if (cancelled) return
+        // Offline : on garde le cache pour une UX dégradée
+        if (err?.message === "offline") return
+        // Autre erreur (401 expiré, etc.) → purge
+        setUser(null)
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

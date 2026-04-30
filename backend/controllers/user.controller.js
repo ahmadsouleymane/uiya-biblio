@@ -8,7 +8,7 @@ import { sendResetPasswordEmail, sendWelcomeEmail } from "../utils/email.js";
 import { parse } from "csv-parse/sync";
 
 const generateToken = (user) => {
-  return jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
 export const addUser = async (req, res) => {
@@ -21,19 +21,25 @@ export const addUser = async (req, res) => {
     if (!password || password.length < 6) return res.status(400).json({ message: "Le mot de passe doit faire au moins 6 caractères" });
     if (!department?.trim()) return res.status(400).json({ message: "Le département est requis" });
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPhone = phone.trim();
+
+    const existingUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
+    });
     if (existingUser) {
-      return res.status(400).json({ message: "Cet email est déjà utilisé" });
+      const field = existingUser.email === normalizedEmail ? "email" : "téléphone";
+      return res.status(400).json({ message: `Ce ${field} est déjà utilisé` });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      fullName,
-      email,
-      phone,
-      department,
+      fullName: fullName.trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      department: department.trim(),
       year,
       password: hashedPassword,
     });
@@ -68,7 +74,7 @@ export const login = async (req, res) => {
 
     if (!phone?.trim() || !password) return res.status(400).json({ message: "Téléphone et mot de passe requis" });
 
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone: phone.trim() });
     if (!user) return res.status(400).json({ message: "Identifiants incorrects" });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -103,6 +109,7 @@ export const me = async (req, res) => {
 
     res.status(200).json(user);
   } catch (err) {
+    if (err?.name === "TokenExpiredError") return res.status(401).json({ message: "Token expiré" });
     console.error("Erreur me:", err);
     res.status(401).json({ message: "Token invalide" });
   }
@@ -112,12 +119,17 @@ export const updateMe = async (req, res) => {
   try {
     const { fullName, phone, department, year } = req.body;
     const update = {};
-    if (fullName !== undefined) update.fullName = fullName;
-    if (phone !== undefined) update.phone = phone;
-    if (department !== undefined) update.department = department;
+    if (fullName !== undefined) update.fullName = String(fullName).trim();
+    if (phone !== undefined) update.phone = String(phone).trim();
+    if (department !== undefined) update.department = String(department).trim();
     if (year !== undefined) update.year = year;
 
-    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true }).select("-password");
+    if (update.phone) {
+      const dup = await User.findOne({ phone: update.phone, _id: { $ne: req.user._id } });
+      if (dup) return res.status(400).json({ message: "Ce téléphone est déjà utilisé" });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true, runValidators: true }).select("-password");
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
     res.status(200).json(user);
   } catch (err) {

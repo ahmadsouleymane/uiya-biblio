@@ -67,6 +67,7 @@ export default function AdminWhatsApp() {
   }, [status])
 
   const handleConnect = async () => {
+    if (connecting) return
     setConnecting(true)
     setDebugInfo("Connexion en cours...")
     try {
@@ -110,6 +111,7 @@ export default function AdminWhatsApp() {
   }
 
   const handleSendTest = async () => {
+    if (sending) return
     if (!testPhone.trim() || !testMessage.trim()) return toast.error("Numéro et message requis")
     setSending(true)
     try {
@@ -129,7 +131,9 @@ export default function AdminWhatsApp() {
   }
 
   const handleSendBulk = async () => {
+    if (bulkSending) return
     if (!bulkMessage.trim()) return toast.error("Message requis")
+    if (!window.confirm(`Envoyer ce message à ${bulkRole === "all" ? "tous les utilisateurs" : "les " + bulkRole + "s"} ?`)) return
     setBulkSending(true)
     try {
       const res = await apiFetch(`${API}/whatsapp/bulk`, {

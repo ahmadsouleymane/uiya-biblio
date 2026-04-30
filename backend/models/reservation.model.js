@@ -25,5 +25,8 @@ const reservationSchema = new mongoose.Schema({
   }
 });
 
+reservationSchema.index({ user: 1, status: 1 });
+reservationSchema.index({ book: 1, status: 1, createdAt: 1 });
+
 const Reservation = mongoose.model('Reservation', reservationSchema);
 export default Reservation;

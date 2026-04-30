@@ -24,6 +24,9 @@ export const protect = (roles = []) => async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
+    if (err?.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expiré' });
+    }
     return res.status(401).json({ message: 'Token invalide' });
   }
 };

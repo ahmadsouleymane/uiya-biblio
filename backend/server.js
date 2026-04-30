@@ -22,6 +22,9 @@ import settingsRoutes from "./routes/settings.routes.js"
 import auditRoutes from "./routes/audit.routes.js"
 import notificationRoutes from "./routes/notification.routes.js"
 import categoryRoutes from "./routes/category.routes.js"
+import reservationRoutes from "./routes/reservation.routes.js"
+import fineRoutes from "./routes/fine.routes.js"
+import whatsappRoutes from "./routes/whatsapp.routes.js"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import morgan from "morgan"
@@ -37,9 +40,19 @@ connectDB()
 // Logging HTTP
 app.use(morgan("dev"))
 
-// CORS
+// CORS — autoriser plusieurs origines (dev + prod)
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  "https://uiya-biblio.vercel.app",
+  "http://localhost:5173",
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "https://uiya-biblio.vercel.app",
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true)
+    if (allowedOrigins.includes(origin) || /\.ngrok-free\.app$/.test(origin)) return cb(null, true)
+    return cb(new Error("Origin non autorisée"))
+  },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 }))
@@ -72,10 +85,22 @@ app.use("/settings", settingsRoutes)
 app.use("/audit", auditRoutes)
 app.use("/notification", notificationRoutes)
 app.use("/category", categoryRoutes)
+app.use("/reservation", reservationRoutes)
+app.use("/fine", fineRoutes)
+app.use("/whatsapp", whatsappRoutes)
 
 // Health check — uptime monitoring
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() })
+})
+
+// Middleware global d'erreurs (multer, json parser, etc.)
+app.use((err, _req, res, next) => {
+  console.error("[ErrorHandler]", err?.message || err)
+  if (res.headersSent) return next(err)
+  if (err?.code === "LIMIT_FILE_SIZE") return res.status(413).json({ message: "Fichier trop volumineux" })
+  if (err?.message && /seuls|acceptée|Origin/i.test(err.message)) return res.status(400).json({ message: err.message })
+  res.status(500).json({ message: "Erreur serveur" })
 })
 
 startScheduler()

@@ -9,6 +9,8 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "..", "uploads");
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const generateDescription = async (req, res) => {
   try {
     const { title, author } = req.body;
@@ -117,21 +119,22 @@ export const getBooks = async (req, res) => {
     const { category, search, author, publisher, yearFrom, yearTo, condition, available, location, digitalOnly, sort, sortBy, page, limit } = req.query;
     const filter = {};
 
-    if (category && category !== "tous") filter.category = { $regex: category, $options: "i" };
+    if (category && category !== "tous") filter.category = { $regex: escapeRegex(category), $options: "i" };
     if (condition) filter.condition = condition;
-    if (location) filter.location = { $regex: location, $options: "i" };
+    if (location) filter.location = { $regex: escapeRegex(location), $options: "i" };
     if (digitalOnly === "true") filter.digitalUrl = { $exists: true, $ne: "" };
-    if (publisher) filter.publisher = { $regex: publisher, $options: "i" };
+    if (publisher) filter.publisher = { $regex: escapeRegex(publisher), $options: "i" };
     if (available === "true") filter.availableCopies = { $gt: 0 };
 
     if (search) {
+      const esc = escapeRegex(search);
       filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { author: { $regex: search, $options: "i" } },
-        { isbn: { $regex: search, $options: "i" } },
+        { title: { $regex: esc, $options: "i" } },
+        { author: { $regex: esc, $options: "i" } },
+        { isbn: { $regex: esc, $options: "i" } },
       ];
     } else if (author) {
-      filter.author = { $regex: author, $options: "i" };
+      filter.author = { $regex: escapeRegex(author), $options: "i" };
     }
 
     if (yearFrom || yearTo) {
@@ -213,7 +216,22 @@ export const updateBook = async (req, res) => {
     ALLOWED_UPDATE_FIELDS.forEach((f) => {
       if (req.body[f] !== undefined) update[f] = req.body[f];
     });
-    const book = await Book.findByIdAndUpdate(req.params.id, update, { new: true });
+
+    const current = await Book.findById(req.params.id);
+    if (!current) return res.status(404).json({ message: "Livre introuvable" });
+
+    if (update.copies !== undefined) {
+      const newCopies = Number(update.copies);
+      if (Number.isNaN(newCopies) || newCopies < 0) {
+        return res.status(400).json({ message: "Nombre d'exemplaires invalide" });
+      }
+      const diff = newCopies - (current.copies || 0);
+      const newAvailable = Math.max(0, Math.min(newCopies, (current.availableCopies || 0) + diff));
+      update.copies = newCopies;
+      update.availableCopies = newAvailable;
+    }
+
+    const book = await Book.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     res.status(200).json(book);
   } catch (e) {
@@ -341,7 +359,8 @@ export const uploadBookPdf = async (req, res) => {
     // Supprimer l'ancien PDF s'il existe
     if (book.pdfFile) {
       const oldPath = path.join(uploadsDir, path.basename(book.pdfFile));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); }
+      catch (e) { console.error("Erreur suppression ancien PDF:", e.message); }
     }
 
     book.pdfFile = `/uploads/${req.file.filename}`;
@@ -360,7 +379,8 @@ export const deleteBookPdf = async (req, res) => {
     if (!book.pdfFile) return res.status(400).json({ message: "Aucun PDF associé" });
 
     const filePath = path.join(uploadsDir, path.basename(book.pdfFile));
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); }
+    catch (e) { console.error("Erreur suppression PDF:", e.message); }
 
     book.pdfFile = undefined;
     await book.save();
@@ -390,10 +410,11 @@ export const importBooksFromCsv = async (req, res) => {
 
         const copiesNum = parseInt(copies) || 1;
         const existing = await Book.findOne({ isbn });
+        const parseAuthor = (a) => Array.isArray(a) ? a : (a ? String(a).split(";").map(s => s.trim()).filter(Boolean) : []);
 
         if (existing) {
           await Book.findByIdAndUpdate(existing._id, {
-            title, author: author ? author.split(";").map(a => a.trim()) : existing.author,
+            title, author: author ? parseAuthor(author) : existing.author,
             publisher, year, pages: parseInt(pages) || existing.pages,
             category, cover, copies: copiesNum, description, condition, location, digitalUrl
           });
@@ -401,7 +422,7 @@ export const importBooksFromCsv = async (req, res) => {
         } else {
           await Book.create({
             isbn, title,
-            author: author ? author.split(";").map(a => a.trim()) : [],
+            author: parseAuthor(author),
             publisher: publisher || "", year: year || "", pages: parseInt(pages) || 0,
             category: category || "", cover: cover || "", copies: copiesNum, availableCopies: copiesNum,
             description, condition: condition || "bon", location, digitalUrl,

@@ -65,6 +65,10 @@ export default function AdminPresence() {
           new Audio("/done.mp3").play().catch(() => {})
 
           const userId = result.getText()
+          if (!/^[a-f0-9]{24}$/i.test(userId)) {
+            toast.error("QR code invalide")
+            return
+          }
           try {
             const data = await checkIn(userId)
             if (data._id) {
@@ -88,9 +92,13 @@ export default function AdminPresence() {
   }, [scanning])
 
   const handleCheckOut = async (presenceId) => {
-    const data = await checkOut(presenceId)
-    if (data._id) { toast.success("Sortie enregistrée"); loadToday() }
-    else toast.error(data.message || "Erreur")
+    try {
+      const data = await checkOut(presenceId)
+      if (data._id) { toast.success("Sortie enregistrée"); loadToday() }
+      else toast.error(data.message || "Erreur")
+    } catch {
+      toast.error("Erreur serveur")
+    }
   }
 
   const handlePageChange = (newPage) => {
@@ -198,7 +206,7 @@ export default function AdminPresence() {
                   {presences.map(p => (
                     <div key={p._id} className="row-item">
                       <div className="avatar avatar-md">
-                        {p.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                        {(p.user?.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-primary truncate">{p.user?.fullName}</p>
@@ -243,7 +251,7 @@ export default function AdminPresence() {
               <div className="row-list">
                 {presences.map(p => {
                   const r = roleConfig[p.user?.role] || roleConfig.student
-                  const initials = p.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+                  const initials = (p.user?.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
                   return (
                     <div key={p._id} className="row-item">
                       <div className="avatar avatar-lg shrink-0">{initials}</div>

@@ -14,15 +14,12 @@ export const getEvents = async (req, res) => {
 
 export const registerForEvent = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id)
+    const event = await Event.findByIdAndUpdate(
+      req.params.id,
+      { $addToSet: { registrations: req.user._id } },
+      { new: true }
+    )
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
-
-    const userId = req.user._id.toString()
-    if (event.registrations.map(r => r.toString()).includes(userId)) {
-      return res.status(400).json({ message: "Déjà inscrit" })
-    }
-    event.registrations.push(req.user._id)
-    await event.save()
     return res.status(200).json({ message: "Inscription confirmée", count: event.registrations.length })
   } catch (err) {
     return res.status(500).json({ message: "Erreur serveur" })
@@ -31,11 +28,12 @@ export const registerForEvent = async (req, res) => {
 
 export const unregisterFromEvent = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id)
+    const event = await Event.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { registrations: req.user._id } },
+      { new: true }
+    )
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
-
-    event.registrations = event.registrations.filter(r => r.toString() !== req.user._id.toString())
-    await event.save()
     return res.status(200).json({ message: "Désinscription effectuée", count: event.registrations.length })
   } catch (err) {
     return res.status(500).json({ message: "Erreur serveur" })

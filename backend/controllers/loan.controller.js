@@ -39,10 +39,6 @@ export const borrowBook = async (req, res) => {
 
     const settings = await LibrarySettings.getSettings();
 
-    const book = await Book.findById(bookId);
-    if (!book) return res.status(404).json({ message: "Livre introuvable" });
-    if (book.availableCopies <= 0) return res.status(400).json({ message: "Aucun exemplaire disponible" });
-
     const existingLoan = await Loan.findOne({ user: userId, book: bookId, status: { $in: ["borrowed", "late"] } });
     if (existingLoan) return res.status(400).json({ message: "Ce lecteur a déjà emprunté ce livre" });
 
@@ -51,10 +47,26 @@ export const borrowBook = async (req, res) => {
       return res.status(400).json({ message: `Limite de ${settings.maxLoansPerUser} emprunts simultanés atteinte` });
     }
 
-    book.availableCopies -= 1;
-    await book.save();
+    // Décrement atomique : échoue si availableCopies <= 0 (évite la race condition)
+    const book = await Book.findOneAndUpdate(
+      { _id: bookId, availableCopies: { $gt: 0 } },
+      { $inc: { availableCopies: -1 } },
+      { new: true }
+    );
+    if (!book) {
+      const exists = await Book.exists({ _id: bookId });
+      if (!exists) return res.status(404).json({ message: "Livre introuvable" });
+      return res.status(400).json({ message: "Aucun exemplaire disponible" });
+    }
 
-    const loan = await Loan.create({ user: userId, book: bookId, performedBy: req.user._id });
+    let loan;
+    try {
+      loan = await Loan.create({ user: userId, book: bookId, performedBy: req.user._id });
+    } catch (err) {
+      // Rollback si la création échoue
+      await Book.findByIdAndUpdate(bookId, { $inc: { availableCopies: 1 } });
+      throw err;
+    }
     await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }]);
 
     res.status(201).json(loan);
@@ -67,12 +79,20 @@ export const borrowBook = async (req, res) => {
 export const returnBook = async (req, res) => {
   try {
     const settings = await LibrarySettings.getSettings();
-
-    const loan = await Loan.findById(req.params.loanId);
-    if (!loan) return res.status(404).json({ message: "Emprunt introuvable" });
-    if (loan.status === "returned") return res.status(400).json({ message: "Ce livre a déjà été retourné" });
-
     const now = new Date();
+
+    // Transition atomique : seul le premier appel passe, évite un double +1
+    const loan = await Loan.findOneAndUpdate(
+      { _id: req.params.loanId, status: { $in: ["borrowed", "late"] } },
+      { status: "returned", returnDate: now, returnedBy: req.user._id },
+      { new: true }
+    );
+    if (!loan) {
+      const exists = await Loan.exists({ _id: req.params.loanId });
+      if (!exists) return res.status(404).json({ message: "Emprunt introuvable" });
+      return res.status(400).json({ message: "Ce livre a déjà été retourné" });
+    }
+
     const fine = calcFine(loan.borrowDate, settings.loanDurationDays, now);
 
     if (fine) {
@@ -84,12 +104,8 @@ export const returnBook = async (req, res) => {
       });
     }
 
-    loan.status = "returned";
-    loan.returnDate = now;
-    loan.returnedBy = req.user._id;
-    await loan.save();
-
-    await Book.findByIdAndUpdate(loan.book, { $inc: { availableCopies: 1 } });
+    const bookUpdate = await Book.findByIdAndUpdate(loan.book, { $inc: { availableCopies: 1 } });
+    if (!bookUpdate) console.error(`[returnBook] Livre ${loan.book} introuvable lors de la libération`);
 
     await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }, { path: "returnedBy", select: "fullName" }]);
     res.status(200).json({ loan, fine });
@@ -139,13 +155,20 @@ export const returnByUserAndIsbn = async (req, res) => {
   try {
     const settings = await LibrarySettings.getSettings();
     const { userId, isbn } = req.body;
+    if (!userId || !isbn) return res.status(400).json({ message: "userId et isbn requis" });
+
     const book = await Book.findOne({ isbn });
     if (!book) return res.status(404).json({ message: "Livre introuvable avec cet ISBN" });
 
-    const loan = await Loan.findOne({ user: userId, book: book._id, status: { $in: ["borrowed", "late"] } });
+    const now = new Date();
+
+    const loan = await Loan.findOneAndUpdate(
+      { user: userId, book: book._id, status: { $in: ["borrowed", "late"] } },
+      { status: "returned", returnDate: now, returnedBy: req.user._id },
+      { new: true }
+    );
     if (!loan) return res.status(404).json({ message: "Aucun emprunt actif pour ce lecteur et ce livre" });
 
-    const now = new Date();
     const fine = calcFine(loan.borrowDate, settings.loanDurationDays, now);
 
     if (fine) {
@@ -157,10 +180,6 @@ export const returnByUserAndIsbn = async (req, res) => {
       });
     }
 
-    loan.status = "returned";
-    loan.returnDate = now;
-    loan.returnedBy = req.user._id;
-    await loan.save();
     await Book.findByIdAndUpdate(book._id, { $inc: { availableCopies: 1 } });
 
     await loan.populate(["user", "book", { path: "performedBy", select: "fullName" }, { path: "returnedBy", select: "fullName" }]);

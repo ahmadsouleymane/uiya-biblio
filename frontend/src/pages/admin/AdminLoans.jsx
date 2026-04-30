@@ -44,7 +44,7 @@ function Scanner({ onResult, onCancel, label }) {
 }
 
 function UserCard({ user, onClear }) {
-  const initials = user.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+  const initials = (user.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
   return (
     <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: "var(--border)", border: "1px solid var(--border-md)" }}>
       <div className="avatar avatar-md">{initials}</div>
@@ -146,13 +146,17 @@ function LoanList() {
   useEffect(() => { setPage(1) }, [activeTab])
 
   const handleReturn = async (id) => {
-    const data = await returnBook(id)
-    const loan = data.loan || data
-    if (loan._id) {
-      if (data.fine) toast.success(`Retour enregistré ! Amende: ${data.fine.amount} FCFA (${data.fine.daysLate} j de retard)`, { duration: 6000 })
-      else toast.success("Retour enregistré !")
-      load()
-    } else toast.error(data.message || "Erreur")
+    try {
+      const data = await returnBook(id)
+      const loan = data.loan || data
+      if (loan._id) {
+        if (data.fine) toast.success(`Retour enregistré ! Amende: ${data.fine.amount} FCFA (${data.fine.daysLate} j de retard)`, { duration: 6000 })
+        else toast.success("Retour enregistré !")
+        load()
+      } else toast.error(data.message || "Erreur")
+    } catch {
+      toast.error("Erreur serveur")
+    }
   }
 
   const filtered    = loans.filter(l => activeTab === "Tous" || statusConfig[l.status]?.tab === activeTab)
@@ -260,6 +264,10 @@ function ManageLoans() {
 
   const handleUserQr = async (userId) => {
     setScanType(null)
+    if (!/^[a-f0-9]{24}$/i.test(userId)) {
+      toast.error("QR code invalide")
+      return
+    }
     try {
       const user = await getUserById(userId)
       if (user._id) {
@@ -290,6 +298,7 @@ function ManageLoans() {
   }
 
   const handleBorrow = async () => {
+    if (loading) return
     if (!scannedUser || !scannedBook) return
     setLoading(true)
     try {
@@ -302,6 +311,7 @@ function ManageLoans() {
   }
 
   const handleReturnByIsbn = async () => {
+    if (loading) return
     if (!scannedUser || !scannedBook) return
     setLoading(true)
     try {
@@ -317,6 +327,7 @@ function ManageLoans() {
   }
 
   const handleReturnFromList = async (loan) => {
+    if (loading) return
     setLoading(true)
     try {
       const data = await returnBook(loan._id)

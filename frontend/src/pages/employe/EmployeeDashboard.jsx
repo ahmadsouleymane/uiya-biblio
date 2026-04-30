@@ -111,7 +111,7 @@ export default function EmployeeDashboard() {
               {dashStats.dueTodayLoans.map(loan => (
                 <div key={loan._id} className="row-item">
                   <div className="avatar avatar-md">
-                    {loan.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                    {(loan.user?.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-primary">{loan.user?.fullName || "—"}</p>
@@ -139,7 +139,7 @@ export default function EmployeeDashboard() {
               {presences.slice(0, 5).map(p => (
                 <div key={p._id} className="row-item">
                   <div className="avatar avatar-md">
-                    {p.user?.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                    {(p.user?.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-primary">{p.user?.fullName}</p>

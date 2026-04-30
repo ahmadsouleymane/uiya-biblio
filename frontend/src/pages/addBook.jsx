@@ -207,6 +207,7 @@ export default function AddBook() {
   }
 
   const handleSave = async () => {
+    if (loading) return
     if (!validate()) { toast.error("Corrigez les erreurs"); return }
     setLoading(true)
     const isbnValue = form.isbn.trim() || `UIYA-${Date.now()}`

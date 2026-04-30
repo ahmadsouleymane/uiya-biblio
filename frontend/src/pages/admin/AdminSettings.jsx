@@ -36,6 +36,11 @@ export default function AdminSettings() {
   }, [])
 
   const handleSave = async () => {
+    if (saving) return
+    const dur = Number(form.loanDurationDays)
+    const maxL = Number(form.maxLoansPerUser)
+    if (!Number.isFinite(dur) || dur < 1 || dur > 60) { toast.error("Durée invalide (1-60 jours)"); return }
+    if (!Number.isFinite(maxL) || maxL < 1 || maxL > 10) { toast.error("Emprunts max invalide (1-10)"); return }
     setSaving(true)
     try {
       await updateSettings(form)
@@ -73,10 +78,12 @@ export default function AdminSettings() {
     </div>
   )
 
-  const filteredBooks = books.filter(b =>
-    b.title.toLowerCase().includes(bookSearch.toLowerCase()) ||
-    (Array.isArray(b.author) ? b.author[0] : b.author)?.toLowerCase().includes(bookSearch.toLowerCase())
-  )
+  const filteredBooks = books.filter(b => {
+    const q = bookSearch.toLowerCase()
+    const title = (b.title || "").toLowerCase()
+    const author = (Array.isArray(b.author) ? b.author[0] : b.author || "").toLowerCase()
+    return title.includes(q) || author.includes(q)
+  })
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>

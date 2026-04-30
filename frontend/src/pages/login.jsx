@@ -18,13 +18,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
+    if (loading) return
     if (!phone || !password) { toast.error("Remplis tous les champs"); return }
     setLoading(true)
     try {
       const data = await login(phone, password)
       if (data._id) {
         setUser(data)
-        toast.success("Bienvenue " + data.fullName.split(" ")[0])
+        toast.success("Bienvenue " + (data.fullName?.split(" ")[0] || ""))
         if (data.role === "admin") navigate("/admin")
         else if (data.role === "employee") navigate("/employe")
         else navigate("/")

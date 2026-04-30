@@ -38,11 +38,13 @@ const bookSchema = new mongoose.Schema({
   },
   copies: {
     type: Number,
-    default: 1
+    default: 1,
+    min: 0
   },
   availableCopies: {
     type: Number,
-    default: 1
+    default: 1,
+    min: 0
   },
   description: {
     type: String
@@ -70,6 +72,9 @@ const bookSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+bookSchema.index({ category: 1 });
+bookSchema.index({ title: "text", author: "text" });
 
 const Book = mongoose.model('Book', bookSchema);
 export default Book;

@@ -49,8 +49,10 @@ export default function Activity() {
   }, [])
 
   const handlePosterChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image trop volumineuse (max 5 Mo)"); return }
+    if (posterPreview) URL.revokeObjectURL(posterPreview)
     setPosterFile(file)
     setPosterPreview(URL.createObjectURL(file))
   }

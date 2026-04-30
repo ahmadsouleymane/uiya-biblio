@@ -41,6 +41,7 @@ function dueDate(borrowDate, days = 14) {
 
 export default function Profile() {
   const { user, setUser } = useUser()
+  const { theme } = useTheme()
   const navigate = useNavigate()
   const [loans, setLoans] = useState([])
   const [loadingLoans, setLoadingLoans] = useState(true)
@@ -55,17 +56,19 @@ export default function Profile() {
   }, [])
 
   useEffect(() => {
-    if (!user) return
+    if (!user) { setLoadingLoans(false); return }
+    let cancelled = false
     getUserLoans(user._id)
-      .then(data => setLoans(Array.isArray(data) ? data : []))
+      .then(data => { if (!cancelled) setLoans(Array.isArray(data) ? data : []) })
       .catch(() => {})
-      .finally(() => setLoadingLoans(false))
-    getFavorites().then(data => setFavorites(Array.isArray(data) ? data : [])).catch(() => {})
-    getUserStats(user._id).then(data => setStats(data)).catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingLoans(false) })
+    getFavorites().then(data => { if (!cancelled) setFavorites(Array.isArray(data) ? data : []) }).catch(() => {})
+    getUserStats(user._id).then(data => { if (!cancelled) setStats(data) }).catch(() => {})
+    return () => { cancelled = true }
   }, [user])
 
   const handleLogout = async () => {
-    await logout()
+    try { await logout() } catch { /* ignore */ }
     setUser(null)
     navigate("/")
     toast.success("Déconnecté")
@@ -81,10 +84,9 @@ export default function Profile() {
 
   if (!user) return null
 
-  const { theme } = useTheme()
   const dark = theme === "dark"
   const isAdmin = user.role === "admin"
-  const initials = user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+  const initials = (user.fullName || "?").split(" ").map(n => n[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()
   const rs = ROLE_STYLE[user.role] || ROLE_STYLE.student
 
   const activeLoans  = loans.filter(l => l.status === "borrowed")

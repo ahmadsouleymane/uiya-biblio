@@ -123,6 +123,7 @@ export default function Admin() {
 
   // ── Export ────────────────────────────────────────────────────────
   const handleExport = async () => {
+    if (exporting) return
     setExporting(true)
     try {
       const params = { type: exportType }
@@ -185,7 +186,7 @@ export default function Admin() {
       <div style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }} className="text-white">
         <div className="w-full px-4 py-10">
           <p className="overline-white mb-1">Administration</p>
-          <h1 className="text-3xl md:text-4xl font-black">Bonjour, {user?.fullName?.split(" ")[0]} 👋</h1>
+          <h1 className="text-3xl md:text-4xl font-black">Bonjour, {user?.fullName?.split(" ")[0] || "Admin"} 👋</h1>
         </div>
       </div>
 
@@ -652,6 +653,7 @@ export default function Admin() {
             {/* Bouton génération IA descriptions */}
             <button
               onClick={async () => {
+                if (generatingDescs) return
                 setGeneratingDescs(true)
                 try {
                   const data = await generateAllBookDescriptions()
