@@ -144,8 +144,8 @@ export default function Login() {
                   <input
                     className="input"
                     style={{ paddingLeft: "2.75rem" }}
-                    type="text"
-                    placeholder="admin ou user"
+                    type="number"
+                    placeholder="0X XX XX XX XX"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     autoFocus
@@ -164,7 +164,7 @@ export default function Login() {
                     className="input"
                     style={{ paddingLeft: "2.75rem", paddingRight: "3rem" }}
                     type={showPassword ? "text" : "password"}
-                    placeholder="admin ou user"
+                    placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleLogin()}
