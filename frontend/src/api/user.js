@@ -1,5 +1,5 @@
 import { apiFetch, setToken, getToken } from "./_fetch"
-const API = import.meta.env.VITE_API_URL + "/user"
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '') + "/user"
 const opts = { headers: { "Content-Type": "application/json" } }
 
 export const addUser = (data) =>

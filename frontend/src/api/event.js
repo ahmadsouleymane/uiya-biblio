@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 import { cacheSet, cacheGet } from "../utils/cache"
-const API = import.meta.env.VITE_API_URL + "/event"
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '') + "/event"
 
 export const getEvents = () => {
   if (!navigator.onLine) {

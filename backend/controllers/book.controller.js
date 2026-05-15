@@ -34,7 +34,7 @@ export const generateDescription = async (req, res) => {
   }
 };
 
-const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "digitalUrl", "pdfFile"];
+const ALLOWED_UPDATE_FIELDS = ["isbn", "title", "author", "publisher", "year", "pages", "category", "cover", "copies", "description", "condition", "location", "pdfFile"];
 
 // Helper pour générer une description via Groq
 async function fetchAiDescription(title, author) {
@@ -73,7 +73,7 @@ async function fetchAiDescription(title, author) {
 
 export const addBook = async (req, res) => {
   try {
-    const { isbn, title, author, pages, year, category, cover, copies, publisher, description, condition, location, digitalUrl } = req.body;
+    const { isbn, title, author, pages, year, category, cover, copies, publisher, description, condition, location } = req.body;
 
     if (!isbn || !title || !author || !pages || !year || !category || !cover || !copies || !publisher) {
       return res.status(400).json({ message: "Veuillez remplir tous les champs obligatoires" });
@@ -103,7 +103,6 @@ export const addBook = async (req, res) => {
       description: finalDescription || "",
       condition: condition || 'bon',
       location,
-      digitalUrl,
       addedBy: req.user._id,
     });
 
@@ -116,13 +115,13 @@ export const addBook = async (req, res) => {
 
 export const getBooks = async (req, res) => {
   try {
-    const { category, search, author, publisher, yearFrom, yearTo, condition, available, location, digitalOnly, sort, sortBy, page, limit } = req.query;
+    const { category, search, author, publisher, yearFrom, yearTo, condition, available, location, pdfOnly, sort, sortBy, page, limit } = req.query;
     const filter = {};
 
     if (category && category !== "tous") filter.category = { $regex: escapeRegex(category), $options: "i" };
     if (condition) filter.condition = condition;
     if (location) filter.location = { $regex: escapeRegex(location), $options: "i" };
-    if (digitalOnly === "true") filter.digitalUrl = { $exists: true, $ne: "" };
+    if (pdfOnly === "true") filter.pdfFile = { $exists: true, $ne: "" };
     if (publisher) filter.publisher = { $regex: escapeRegex(publisher), $options: "i" };
     if (available === "true") filter.availableCopies = { $gt: 0 };
 
@@ -405,7 +404,7 @@ export const importBooksFromCsv = async (req, res) => {
 
     for (const row of records) {
       try {
-        const { isbn, title, author, publisher, year, pages, category, cover, copies, description, condition, location, digitalUrl } = row;
+        const { isbn, title, author, publisher, year, pages, category, cover, copies, description, condition, location } = row;
         if (!isbn || !title) { errors.push({ isbn, reason: "isbn et title requis" }); continue; }
 
         const copiesNum = parseInt(copies) || 1;
@@ -416,7 +415,7 @@ export const importBooksFromCsv = async (req, res) => {
           await Book.findByIdAndUpdate(existing._id, {
             title, author: author ? parseAuthor(author) : existing.author,
             publisher, year, pages: parseInt(pages) || existing.pages,
-            category, cover, copies: copiesNum, description, condition, location, digitalUrl
+            category, cover, copies: copiesNum, description, condition, location
           });
           updated++;
         } else {
@@ -425,7 +424,7 @@ export const importBooksFromCsv = async (req, res) => {
             author: parseAuthor(author),
             publisher: publisher || "", year: year || "", pages: parseInt(pages) || 0,
             category: category || "", cover: cover || "", copies: copiesNum, availableCopies: copiesNum,
-            description, condition: condition || "bon", location, digitalUrl,
+            description, condition: condition || "bon", location,
           });
           inserted++;
         }

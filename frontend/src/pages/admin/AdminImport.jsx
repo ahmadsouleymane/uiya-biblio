@@ -63,7 +63,7 @@ export default function AdminImport() {
           <div className="bg-surface rounded-xl p-4 text-sm">
             <p className="font-semibold mb-2 flex items-center gap-2"><FileText className="w-4 h-4" /> Colonnes attendues :</p>
             {type === "books" ? (
-              <p className="text-muted font-mono text-xs">isbn, title, author (séparés par ;), publisher, year, pages, category, cover, copies, description, condition (neuf/bon/usé/endommagé), location, digitalUrl</p>
+              <p className="text-muted font-mono text-xs">isbn, title, author (séparés par ;), publisher, year, pages, category, cover, copies, description, condition (neuf/bon/usé/endommagé), location</p>
             ) : (
               <p className="text-muted font-mono text-xs">fullName, email, phone, password, department, year, role (student/employee/admin)</p>
             )}

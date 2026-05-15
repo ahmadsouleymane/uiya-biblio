@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Link2, Clock, BookMarked, Pencil, FileText } from "lucide-react"
+import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Clock, BookMarked, Pencil, FileText } from "lucide-react"
 import { useState, useEffect, lazy, Suspense } from "react"
 import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
@@ -262,24 +262,6 @@ export default function BookPage() {
             <h2 className="text-2xl font-black text-primary mb-4">Description</h2>
             <p className="leading-relaxed" style={{ color: "var(--muted)" }}>{book.description || "Aucune description disponible pour ce livre."}</p>
           </div>
-
-          {/* Ressource numérique */}
-          {book.digitalUrl && (
-            <div className="rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4" style={{ background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.18)" }}>
-              <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(96,165,250,0.15)" }}>
-                  <Link2 className="w-5 h-5" style={{ color: "#60a5fa" }} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm" style={{ color: "var(--fg)" }}>Ressource numérique</p>
-                  <p className="text-xs truncate" style={{ color: "#60a5fa" }}>{book.digitalUrl}</p>
-                </div>
-              </div>
-              <a href={book.digitalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm text-white shrink-0 w-full sm:w-auto text-center" style={{ background: "#2563eb" }}>
-                Accéder
-              </a>
-            </div>
-          )}
 
           {/* PDF du livre */}
           {book.pdfFile && (

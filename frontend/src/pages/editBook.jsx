@@ -40,7 +40,7 @@ export default function EditBook() {
   const [form, setForm] = useState({
     isbn: "", title: "", author: "", publisher: "", year: "",
     pages: "", category: "", cover: "", copies: 1,
-    description: "", condition: "bon", location: "", digitalUrl: "",
+    description: "", condition: "bon", location: "",
   })
   const [originalBook, setOriginalBook] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -74,7 +74,6 @@ export default function EditBook() {
           description: book.description || "",
           condition: book.condition || "bon",
           location: book.location || "",
-          digitalUrl: book.digitalUrl || "",
         })
         if (Array.isArray(cats)) setCategories(cats)
       })
@@ -181,7 +180,6 @@ export default function EditBook() {
         description: form.description.trim(),
         condition:   form.condition,
         location:    form.location.trim(),
-        digitalUrl:  form.digitalUrl.trim(),
       })
       if (data._id) {
         toast.success("Livre modifié avec succès")
@@ -283,8 +281,6 @@ export default function EditBook() {
                   </div>
                   <Field k="location" placeholder="Emplacement (ex: Salle A, Rayon 3)" form={form} errors={errors} setField={setField} />
                 </div>
-
-                <Field k="digitalUrl" placeholder="URL ressource numérique (optionnel)" form={form} errors={errors} setField={setField} />
 
                 <div>
                   <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Fichier PDF du livre (optionnel)</label>

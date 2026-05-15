@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 import { cacheSet, cacheGet } from "../utils/cache"
-const API = import.meta.env.VITE_API_URL + "/book"
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '') + "/book"
 const opts = { headers: { "Content-Type": "application/json" } }
 
 export const addBook = (data) =>

@@ -12,7 +12,7 @@ import { useTheme } from "../contexts/ThemeContext"
 const EMPTY_FORM = {
   isbn: "", title: "", author: "", publisher: "", year: "",
   pages: "", category: "", cover: "", copies: 1,
-  description: "", condition: "bon", location: "", digitalUrl: "",
+  description: "", condition: "bon", location: "",
 }
 
 const CONDITIONS = [
@@ -225,7 +225,6 @@ export default function AddBook() {
         description: form.description.trim(),
         condition:   form.condition,
         location:    form.location.trim(),
-        digitalUrl:  form.digitalUrl.trim(),
       })
       if (data.book) {
         if (pdfFile) {
@@ -384,8 +383,6 @@ export default function AddBook() {
                   </div>
                   <Field k="location" placeholder="Emplacement (ex: Salle A, Rayon 3)" form={form} errors={errors} setField={setField} />
                 </div>
-
-                <Field k="digitalUrl" placeholder="URL ressource numérique (optionnel)" form={form} errors={errors} setField={setField} />
 
                 <div>
                   <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Fichier PDF du livre (optionnel)</label>

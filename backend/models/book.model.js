@@ -57,9 +57,6 @@ const bookSchema = new mongoose.Schema({
   location: {
     type: String
   },
-  digitalUrl: {
-    type: String
-  },
   pdfFile: {
     type: String
   },

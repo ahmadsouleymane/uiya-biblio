@@ -1,6 +1,6 @@
 import { apiFetch } from "./_fetch"
 
-const API = import.meta.env.VITE_API_URL
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
 export const getSettings = () =>
   apiFetch(`${API}/settings`, {  }).then(r => r.json())
