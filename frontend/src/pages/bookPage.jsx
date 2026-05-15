@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Clock, BookMarked, Pencil, FileText } from "lucide-react"
+import { ArrowLeft, Star, BookOpen, Calendar, Globe, Hash, Building2, ChevronRight, Heart, MapPin, Wrench, Clock, BookMarked, Pencil, FileText, Download } from "lucide-react"
 import { useState, useEffect, lazy, Suspense } from "react"
 import { getBookById, getBooks } from "../api/book"
 import { borrowBook } from "../api/loan"
@@ -275,9 +275,19 @@ export default function BookPage() {
                   <p className="text-xs" style={{ color: "#22c55e" }}>Lisez ce livre directement dans l'application</p>
                 </div>
               </div>
-              <button onClick={() => setShowPdf(true)} className="btn btn-sm text-white shrink-0 w-full sm:w-auto text-center" style={{ background: "#16a34a" }}>
-                <BookOpen className="w-4 h-4" /> Lire le PDF
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                <button onClick={() => setShowPdf(true)} className="btn btn-sm text-white text-center" style={{ background: "#16a34a" }}>
+                  <BookOpen className="w-4 h-4" /> Lire le PDF
+                </button>
+                <a
+                  href={`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${book.pdfFile}`}
+                  download={`${book.title || "ebook"}.pdf`}
+                  className="btn btn-sm text-center"
+                  style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}
+                >
+                  <Download className="w-4 h-4" /> Télécharger
+                </a>
+              </div>
             </div>
           )}
 

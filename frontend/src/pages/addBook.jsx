@@ -4,10 +4,11 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText } from "lucide-react"
+import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText, FileUp } from "lucide-react"
 import { addBook, generateBookDescription, uploadBookPdf } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
+import { extractPdfMetadata } from "../utils/pdfMetadata"
 
 const EMPTY_FORM = {
   isbn: "", title: "", author: "", publisher: "", year: "",
@@ -52,6 +53,8 @@ export default function AddBook() {
   const [generating, setGenerating] = useState(false)
   const [pdfFile, setPdfFile] = useState(null)
   const pdfFileRef = useRef(null)
+  const ebookImportRef = useRef(null)
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
@@ -169,6 +172,55 @@ export default function AddBook() {
     e.target.value = ""
   }
 
+  // ── Import depuis un fichier PDF (ebook) ──────────────────────────
+  const handleEbookImport = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    if (file.type !== "application/pdf") {
+      toast.error("Le fichier doit être un PDF")
+      return
+    }
+    setImporting(true)
+    toast.loading("Extraction des informations du PDF…", { id: "pdf-import" })
+    try {
+      const meta = await extractPdfMetadata(file)
+      const filled = {
+        ...EMPTY_FORM,
+        isbn: meta.isbn || "",
+        title: meta.title || "",
+        author: meta.author || "",
+        publisher: meta.publisher || "",
+        year: meta.year || "",
+        pages: meta.pages || "",
+        cover: meta.cover || "",
+        copies: 1,
+      }
+      setForm(filled)
+      setPdfFile(file)
+
+      const errs = {}
+      if (!filled.title)     errs.title     = "À compléter"
+      if (!filled.author)    errs.author    = "À compléter"
+      if (!filled.publisher) errs.publisher = "À compléter"
+      if (!filled.year)      errs.year      = "À compléter"
+      if (!filled.pages)     errs.pages     = "À compléter"
+      if (!filled.cover)     errs.cover     = "Couverture requise"
+      errs.category = "À sélectionner"
+      setErrors(errs)
+
+      toast.dismiss("pdf-import")
+      toast.success("Informations extraites du PDF !")
+      setStep("form")
+    } catch (err) {
+      console.error(err)
+      toast.dismiss("pdf-import")
+      toast.error("Impossible de lire ce PDF")
+    } finally {
+      setImporting(false)
+    }
+  }
+
   // ── Génération IA de description ──────────────────────────────────
   const handleGenerateDescription = async () => {
     if (!form.title.trim() || !form.author.trim()) {
@@ -261,7 +313,15 @@ export default function AddBook() {
               <h1 className="text-xl md:text-3xl font-black text-primary">Ajouter un livre</h1>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <input
+              ref={ebookImportRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleEbookImport}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <button onClick={() => setStep("scan")}
                 className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity"
                 style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
@@ -283,6 +343,23 @@ export default function AddBook() {
                 <div>
                   <p className="text-xl font-black">Saisie manuelle</p>
                   <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>Remplis les informations du livre à la main</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => !importing && ebookImportRef.current?.click()}
+                disabled={importing}
+                className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #166534 0%, #15803d 100%)" }}
+              >
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+                  {importing ? <Loader2 className="w-7 h-7 animate-spin" /> : <FileUp className="w-7 h-7" />}
+                </div>
+                <div>
+                  <p className="text-xl font-black">Importer depuis un PDF</p>
+                  <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    Titre, auteur, pages et couverture extraits automatiquement de l'ebook
+                  </p>
                 </div>
               </button>
             </div>
