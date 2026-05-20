@@ -1,39 +1,75 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Maximize2, Minimize2 } from "lucide-react"
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString()
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+
+const PDF_OPTIONS = {
+  cMapUrl: "https://unpkg.com/pdfjs-dist@5.4.296/cmaps/",
+  cMapPacked: true,
+  standardFontDataUrl: "https://unpkg.com/pdfjs-dist@5.4.296/standard_fonts/",
+}
 
 export default function PdfViewer({ url, onClose }) {
   const [numPages, setNumPages] = useState(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [scale, setScale] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [pageWidth, setPageWidth] = useState(0)
+  const containerRef = useRef(null)
 
   const onDocumentLoadSuccess = useCallback(({ numPages }) => {
     setNumPages(numPages)
     setPageNumber(1)
   }, [])
 
-  const goToPrev = () => setPageNumber(p => Math.max(1, p - 1))
-  const goToNext = () => setPageNumber(p => Math.min(numPages || 1, p + 1))
+  const goToPrev = useCallback(() => setPageNumber(p => Math.max(1, p - 1)), [])
+  const goToNext = useCallback(() => setPageNumber(p => Math.min(numPages || 1, p + 1)), [numPages])
   const zoomIn = () => setScale(s => Math.min(3, s + 0.25))
   const zoomOut = () => setScale(s => Math.max(0.5, s - 0.25))
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.getElementById("pdf-viewer-container")?.requestFullscreen()
-      setIsFullscreen(true)
+      document.getElementById("pdf-viewer-container")?.requestFullscreen().catch(() => {})
     } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
+      document.exitFullscreen().catch(() => {})
     }
   }
+
+  // Sync l'état fullscreen avec l'API navigateur (ESC peut le fermer)
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener("fullscreenchange", onFsChange)
+    return () => document.removeEventListener("fullscreenchange", onFsChange)
+  }, [])
+
+  // Clavier : flèches + ESC
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "ArrowLeft") goToPrev()
+      else if (e.key === "ArrowRight") goToNext()
+      else if (e.key === "Escape" && !document.fullscreenElement) onClose?.()
+      else if (e.key === "+") zoomIn()
+      else if (e.key === "-") zoomOut()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [goToPrev, goToNext, onClose])
+
+  // Largeur adaptative (responsive mobile)
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) {
+        setPageWidth(Math.min(containerRef.current.clientWidth - 24, 900))
+      }
+    }
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
 
   return (
     <div
@@ -73,28 +109,33 @@ export default function PdfViewer({ url, onClose }) {
       </div>
 
       {/* PDF Content */}
-      <div className="flex-1 overflow-auto flex justify-center py-4">
+      <div ref={containerRef} className="flex-1 overflow-auto flex justify-center py-4">
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={(err) => console.error("PDF load error:", err)}
+          options={PDF_OPTIONS}
           loading={
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent" />
             </div>
           }
           error={
-            <div className="text-white text-center py-20">
+            <div className="text-white text-center py-20 px-4">
               <p className="text-lg font-bold">Impossible de charger le PDF</p>
-              <p className="text-sm mt-2 opacity-60">Vérifiez que le fichier est valide</p>
+              <p className="text-sm mt-2 opacity-60">Vérifiez votre connexion ou que le fichier est valide</p>
             </div>
           }
         >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-          />
+          {pageWidth > 0 && (
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              width={pageWidth}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          )}
         </Document>
       </div>
     </div>

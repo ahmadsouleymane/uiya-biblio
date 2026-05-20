@@ -139,7 +139,16 @@ export const updateMe = async (req, res) => {
 
 export const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    // Confidentialité : l'utilisateur peut consulter son propre profil, admin/employee peuvent voir tous
+    const requester = req.user;
+    if (
+      requester.role !== "admin" &&
+      requester.role !== "employee" &&
+      String(requester._id) !== String(req.params.id)
+    ) {
+      return res.status(403).json({ message: "Accès refusé" });
+    }
+    const user = await User.findById(req.params.id).select("-password -resetPasswordToken -resetPasswordExpires");
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
     res.status(200).json(user);
   } catch (err) {
@@ -369,6 +378,15 @@ export const importUsersFromCsv = async (req, res) => {
 
 export const getUserStats = async (req, res) => {
   try {
+    // Confidentialité : seul l'utilisateur lui-même ou admin/employee peut voir ces stats
+    const requester = req.user;
+    if (
+      requester.role !== "admin" &&
+      requester.role !== "employee" &&
+      String(requester._id) !== String(req.params.userId)
+    ) {
+      return res.status(403).json({ message: "Accès refusé" });
+    }
     const Loan = (await import("../models/loan.model.js")).default;
     const loans = await Loan.find({ user: req.params.userId }).populate("book", "category title");
 

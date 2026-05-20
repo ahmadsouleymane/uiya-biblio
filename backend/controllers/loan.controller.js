@@ -136,6 +136,15 @@ export const renewLoan = async (req, res) => {
 
 export const getUserLoans = async (req, res) => {
   try {
+    // Un utilisateur ne peut consulter que ses propres emprunts (sauf admin/employee)
+    const requester = req.user;
+    if (
+      requester.role !== "admin" &&
+      requester.role !== "employee" &&
+      String(requester._id) !== String(req.params.userId)
+    ) {
+      return res.status(403).json({ message: "Accès refusé" });
+    }
     const settings = await LibrarySettings.getSettings();
     let loans = await Loan.find({ user: req.params.userId })
       .populate("book")
