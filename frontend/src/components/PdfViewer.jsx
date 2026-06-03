@@ -2,15 +2,16 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Maximize2, Minimize2 } from "lucide-react"
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+// Worker servi depuis le CDN avec la version EXACTE de pdfjs (évite que Vite
+// transforme le worker local, ce qui cassait l'affichage des PDF en dev).
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 const PDF_OPTIONS = {
-  cMapUrl: "https://unpkg.com/pdfjs-dist@5.4.296/cmaps/",
+  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
   cMapPacked: true,
-  standardFontDataUrl: "https://unpkg.com/pdfjs-dist@5.4.296/standard_fonts/",
+  standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
 }
 
 export default function PdfViewer({ url, onClose }) {

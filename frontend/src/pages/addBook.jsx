@@ -163,13 +163,40 @@ export default function AddBook() {
     setStep("form")
   }
 
-  const handleCoverUpload = (e) => {
+  // Redimensionne + compresse une image avant de la stocker en base64
+  // (évite les payloads >10 Mo qui faisaient échouer l'ajout avec "Erreur serveur")
+  const compressImage = (file, maxSize = 1000, quality = 0.8) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const img = new Image()
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+          const w = Math.round(img.width * scale)
+          const h = Math.round(img.height * scale)
+          const canvas = document.createElement("canvas")
+          canvas.width = w
+          canvas.height = h
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h)
+          resolve(canvas.toDataURL("image/jpeg", quality))
+        }
+        img.onerror = reject
+        img.src = reader.result
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+  const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => { setField("cover", reader.result) }
-    reader.readAsDataURL(file)
     e.target.value = ""
+    if (!file) return
+    try {
+      const compressed = await compressImage(file)
+      setField("cover", compressed)
+    } catch {
+      toast.error("Impossible de traiter cette image")
+    }
   }
 
   // ── Import depuis un fichier PDF (ebook) ──────────────────────────

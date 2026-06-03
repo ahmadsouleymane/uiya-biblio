@@ -1,9 +1,8 @@
 import * as pdfjsLib from "pdfjs-dist"
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString()
+// Worker servi depuis le CDN avec la version EXACTE de pdfjs (le chemin local
+// était transformé par Vite en dev, ce qui empêchait la lecture du PDF).
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
 const cleanString = (s) => {
   if (!s || typeof s !== "string") return ""

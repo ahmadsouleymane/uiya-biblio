@@ -66,7 +66,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-app.use(express.json({ limit: "10mb" }))
+app.use(express.json({ limit: "25mb" }))
 app.use(cookieParser())
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
@@ -99,6 +99,10 @@ app.use((err, _req, res, next) => {
   console.error("[ErrorHandler]", err?.message || err)
   if (res.headersSent) return next(err)
   if (err?.code === "LIMIT_FILE_SIZE") return res.status(413).json({ message: "Fichier trop volumineux" })
+  // Payload JSON trop gros (ex: couverture base64 trop lourde)
+  if (err?.type === "entity.too.large" || err?.status === 413) {
+    return res.status(413).json({ message: "Image trop volumineuse — réessayez avec une photo plus légère" })
+  }
   if (err?.message && /seuls|acceptée|Origin/i.test(err.message)) return res.status(400).json({ message: err.message })
   res.status(500).json({ message: "Erreur serveur" })
 })
