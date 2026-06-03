@@ -56,8 +56,9 @@ export default function AddBook() {
   const ebookImportRef = useRef(null)
   const [importing, setImporting] = useState(false)
 
-  // ── Import en masse (dossier de PDF) ──────────────────────────────
+  // ── Import en masse (dossier OU plusieurs fichiers PDF) ───────────
   const folderInputRef = useRef(null)
+  const filesInputRef = useRef(null)
   const [bulkCategory, setBulkCategory] = useState("")
   const [bulkRunning, setBulkRunning] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 })
@@ -469,9 +470,9 @@ export default function AddBook() {
                   <FolderUp className="w-7 h-7" />
                 </div>
                 <div>
-                  <p className="text-xl font-black">Importer un dossier</p>
+                  <p className="text-xl font-black">Ajouter plusieurs livres</p>
                   <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
-                    Ajoute en masse tous les PDF d'un dossier en une seule fois
+                    Plusieurs PDF ou un dossier entier, ajoutés en une seule fois
                   </p>
                 </div>
               </button>
@@ -487,9 +488,10 @@ export default function AddBook() {
             </button>
             <div>
               <p className="overline mb-1">Catalogue</p>
-              <h1 className="text-2xl font-black text-primary">Importer un dossier de PDF</h1>
+              <h1 className="text-2xl font-black text-primary">Ajout de plusieurs livres</h1>
               <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                Chaque PDF devient un livre. Titre, auteur, pages et couverture sont extraits automatiquement.
+                Sélectionnez plusieurs fichiers PDF ou un dossier entier. Chaque PDF devient un livre —
+                titre, auteur, pages et couverture sont extraits automatiquement.
               </p>
             </div>
 
@@ -509,6 +511,7 @@ export default function AddBook() {
                 </select>
               </div>
 
+              {/* Sélection d'un dossier entier */}
               <input
                 ref={(el) => {
                   folderInputRef.current = el
@@ -521,19 +524,42 @@ export default function AddBook() {
                 className="hidden"
                 onChange={handleFolderSelect}
               />
+              {/* Sélection de plusieurs fichiers PDF */}
+              <input
+                ref={filesInputRef}
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFolderSelect}
+              />
 
-              <button
-                onClick={() => {
-                  if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
-                  folderInputRef.current?.click()
-                }}
-                disabled={bulkRunning}
-                className="btn btn-primary btn-lg w-full disabled:opacity-60"
-              >
-                {bulkRunning
-                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Import en cours… {bulkProgress.current}/{bulkProgress.total}</>
-                  : <><FolderUp className="w-5 h-5" /> Choisir un dossier</>}
-              </button>
+              {bulkRunning ? (
+                <button disabled className="btn btn-primary btn-lg w-full opacity-60">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Import en cours… {bulkProgress.current}/{bulkProgress.total}
+                </button>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
+                      filesInputRef.current?.click()
+                    }}
+                    className="btn btn-primary btn-lg w-full"
+                  >
+                    <FileUp className="w-5 h-5" /> Plusieurs fichiers
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
+                      folderInputRef.current?.click()
+                    }}
+                    className="btn btn-ghost btn-lg w-full"
+                  >
+                    <FolderUp className="w-5 h-5" /> Un dossier entier
+                  </button>
+                </div>
+              )}
 
               {/* Barre de progression */}
               {bulkProgress.total > 0 && (
