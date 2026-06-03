@@ -4,7 +4,7 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText, FileUp } from "lucide-react"
+import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText, FileUp, FolderUp } from "lucide-react"
 import { addBook, generateBookDescription, uploadBookPdf } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
@@ -45,7 +45,7 @@ export default function AddBook() {
   const coverVideoRef = useRef(null)
   const coverFileRef = useRef(null)
 
-  const [step, setStep] = useState("method") // method | scan | form | cover-cam | done
+  const [step, setStep] = useState("method") // method | scan | form | cover-cam | bulk | done
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
@@ -55,6 +55,13 @@ export default function AddBook() {
   const pdfFileRef = useRef(null)
   const ebookImportRef = useRef(null)
   const [importing, setImporting] = useState(false)
+
+  // ── Import en masse (dossier de PDF) ──────────────────────────────
+  const folderInputRef = useRef(null)
+  const [bulkCategory, setBulkCategory] = useState("")
+  const [bulkRunning, setBulkRunning] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 })
+  const [bulkResults, setBulkResults] = useState([])
 
   useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
@@ -248,6 +255,69 @@ export default function AddBook() {
     }
   }
 
+  // ── Import en masse (dossier de PDF) ──────────────────────────────
+  // Couverture de secours si l'extraction de la 1ère page échoue
+  const makePlaceholderCover = (title) => {
+    const canvas = document.createElement("canvas")
+    canvas.width = 400; canvas.height = 600
+    const ctx = canvas.getContext("2d")
+    ctx.fillStyle = "#040848"; ctx.fillRect(0, 0, 400, 600)
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 28px sans-serif"; ctx.textAlign = "center"
+    const words = String(title || "Livre").split(/\s+/)
+    let line = "", y = 270
+    for (const w of words) {
+      if ((line + w).length > 16) { ctx.fillText(line.trim(), 200, y); line = ""; y += 38 }
+      line += w + " "
+    }
+    ctx.fillText(line.trim(), 200, y)
+    return canvas.toDataURL("image/jpeg", 0.85)
+  }
+
+  const handleFolderSelect = async (e) => {
+    const all = Array.from(e.target.files || [])
+    e.target.value = ""
+    if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
+    const pdfs = all.filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name))
+    if (pdfs.length === 0) { toast.error("Aucun PDF trouvé dans ce dossier"); return }
+
+    setBulkRunning(true)
+    setBulkResults([])
+    setBulkProgress({ current: 0, total: pdfs.length })
+
+    const results = []
+    for (let i = 0; i < pdfs.length; i++) {
+      const file = pdfs[i]
+      const name = file.name
+      setBulkProgress({ current: i + 1, total: pdfs.length })
+      try {
+        const meta = await extractPdfMetadata(file).catch(() => ({}))
+        const payload = {
+          isbn: meta.isbn || `UIYA-${Date.now()}-${i}`,
+          title: (meta.title || name.replace(/\.pdf$/i, "")).slice(0, 200),
+          author: meta.author || "Auteur inconnu",
+          publisher: meta.publisher || "Inconnu",
+          year: meta.year || String(new Date().getFullYear()),
+          pages: Number(meta.pages) || 1,
+          category: bulkCategory,
+          cover: meta.cover || makePlaceholderCover(meta.title || name),
+          copies: 1,
+          condition: "bon",
+          skipDescription: true,
+        }
+        const data = await addBook(payload)
+        if (!data.book) { results.push({ name, ok: false, msg: data.message || "Échec" }); setBulkResults([...results]); continue }
+        try { await uploadBookPdf(data.book._id, file); results.push({ name, ok: true, msg: "Ajouté" }) }
+        catch { results.push({ name, ok: true, msg: "Ajouté (PDF non uploadé)" }) }
+      } catch {
+        results.push({ name, ok: false, msg: "Erreur de traitement" })
+      }
+      setBulkResults([...results])
+    }
+    setBulkRunning(false)
+    const okCount = results.filter(r => r.ok).length
+    toast.success(`${okCount}/${pdfs.length} livre(s) ajouté(s)`)
+  }
+
   // ── Génération IA de description ──────────────────────────────────
   const handleGenerateDescription = async () => {
     if (!form.title.trim() || !form.author.trim()) {
@@ -348,7 +418,7 @@ export default function AddBook() {
               onChange={handleEbookImport}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <button onClick={() => setStep("scan")}
                 className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity"
                 style={{ background: dark ? "linear-gradient(135deg, #1c0a0e 0%, #2e1018 100%)" : "linear-gradient(135deg, #040848 0%, #0a1260 100%)" }}>
@@ -389,6 +459,114 @@ export default function AddBook() {
                   </p>
                 </div>
               </button>
+
+              <button
+                onClick={() => { setBulkResults([]); setBulkProgress({ current: 0, total: 0 }); setStep("bulk") }}
+                className="w-full text-white rounded-2xl p-5 sm:p-8 flex items-center gap-4 sm:gap-6 text-left hover:opacity-90 transition-opacity"
+                style={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)" }}
+              >
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+                  <FolderUp className="w-7 h-7" />
+                </div>
+                <div>
+                  <p className="text-xl font-black">Importer un dossier</p>
+                  <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    Ajoute en masse tous les PDF d'un dossier en une seule fois
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Import en masse (dossier) ─────────────────────── */}
+        {step === "bulk" && (
+          <div className="space-y-5">
+            <button onClick={() => !bulkRunning && setStep("method")} disabled={bulkRunning} className="flex items-center gap-2 text-sm font-medium disabled:opacity-50" style={{ color: "var(--muted)" }}>
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
+            <div>
+              <p className="overline mb-1">Catalogue</p>
+              <h1 className="text-2xl font-black text-primary">Importer un dossier de PDF</h1>
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                Chaque PDF devient un livre. Titre, auteur, pages et couverture sont extraits automatiquement.
+              </p>
+            </div>
+
+            <div className="card-p space-y-4">
+              {/* Catégorie appliquée à tout le lot */}
+              <div>
+                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Catégorie appliquée à tous les livres *</label>
+                <select
+                  value={bulkCategory}
+                  onChange={e => setBulkCategory(e.target.value)}
+                  disabled={bulkRunning}
+                  className="input"
+                  style={{ color: bulkCategory ? "var(--fg)" : "var(--muted)" }}
+                >
+                  <option value="" disabled>Choisir une catégorie *</option>
+                  {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <input
+                ref={(el) => {
+                  folderInputRef.current = el
+                  // webkitdirectory doit être posé en impératif (React le filtre en JSX)
+                  if (el) { el.setAttribute("webkitdirectory", ""); el.setAttribute("directory", "") }
+                }}
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFolderSelect}
+              />
+
+              <button
+                onClick={() => {
+                  if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
+                  folderInputRef.current?.click()
+                }}
+                disabled={bulkRunning}
+                className="btn btn-primary btn-lg w-full disabled:opacity-60"
+              >
+                {bulkRunning
+                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Import en cours… {bulkProgress.current}/{bulkProgress.total}</>
+                  : <><FolderUp className="w-5 h-5" /> Choisir un dossier</>}
+              </button>
+
+              {/* Barre de progression */}
+              {bulkProgress.total > 0 && (
+                <div className="w-full rounded-full h-2" style={{ background: "var(--border-md)" }}>
+                  <div className="bg-secondary h-2 rounded-full transition-all" style={{ width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%` }} />
+                </div>
+              )}
+
+              {/* Résultats */}
+              {bulkResults.length > 0 && (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {bulkResults.map((r, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg text-sm" style={{ background: "var(--bg-card)" }}>
+                      {r.ok
+                        ? <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "#16a34a" }} />
+                        : <X className="w-4 h-4 shrink-0" style={{ color: "#e11d48" }} />}
+                      <span className="truncate flex-1" style={{ color: "var(--fg)" }}>{r.name}</span>
+                      <span className="text-xs shrink-0" style={{ color: r.ok ? "#16a34a" : "#e11d48" }}>{r.msg}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!bulkRunning && bulkResults.length > 0 && (
+                <div className="flex gap-3">
+                  <button onClick={() => { setBulkResults([]); setBulkProgress({ current: 0, total: 0 }) }} className="btn btn-ghost flex-1">
+                    Importer un autre dossier
+                  </button>
+                  <button onClick={() => navigate("/admin/livres")} className="btn btn-primary flex-1">
+                    Voir les livres
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -68,7 +68,7 @@ async function fetchAiDescription(title, author) {
 
 export const addBook = async (req, res) => {
   try {
-    const { isbn, title, author, pages, year, category, cover, copies, publisher, description, condition, location } = req.body;
+    const { isbn, title, author, pages, year, category, cover, copies, publisher, description, condition, location, skipDescription } = req.body;
 
     if (!isbn || !title || !author || !pages || !year || !category || !cover || !copies || !publisher) {
       return res.status(400).json({ message: "Veuillez remplir tous les champs obligatoires" });
@@ -77,9 +77,10 @@ export const addBook = async (req, res) => {
     const existing = await Book.findOne({ isbn });
     if (existing) return res.status(400).json({ message: "Ce livre existe déjà (ISBN dupliqué)" });
 
-    // Si pas de description fournie, générer automatiquement via IA
+    // Si pas de description fournie, générer automatiquement via IA — sauf en
+    // import de masse (skipDescription) où l'admin lancera la génération groupée après.
     let finalDescription = description;
-    if (!finalDescription || !finalDescription.trim()) {
+    if (!skipDescription && (!finalDescription || !finalDescription.trim())) {
       finalDescription = await fetchAiDescription(title, author);
     }
 
