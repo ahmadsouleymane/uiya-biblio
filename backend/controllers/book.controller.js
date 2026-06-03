@@ -2,12 +2,7 @@ import Book from "../models/book.model.js";
 import Loan from "../models/loan.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import { parse } from "csv-parse/sync";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "..", "uploads");
+import { uploadPdfBuffer, destroyPdf, isCloudinaryConfigured } from "../config/cloudinary.js";
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -352,17 +347,21 @@ export const generateAllDescriptions = async (req, res) => {
 export const uploadBookPdf = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Fichier PDF requis" });
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({ message: "Stockage PDF non configuré (Cloudinary)" });
+    }
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
 
-    // Supprimer l'ancien PDF s'il existe
-    if (book.pdfFile) {
-      const oldPath = path.join(uploadsDir, path.basename(book.pdfFile));
-      try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); }
-      catch (e) { console.error("Erreur suppression ancien PDF:", e.message); }
+    // Supprimer l'ancien PDF sur Cloudinary s'il existe
+    if (book.pdfPublicId) {
+      try { await destroyPdf(book.pdfPublicId); }
+      catch (e) { console.error("Erreur suppression ancien PDF Cloudinary:", e.message); }
     }
 
-    book.pdfFile = `/uploads/${req.file.filename}`;
+    const result = await uploadPdfBuffer(req.file.buffer);
+    book.pdfFile = result.secure_url;
+    book.pdfPublicId = result.public_id;
     await book.save();
     res.status(200).json({ message: "PDF ajouté", pdfFile: book.pdfFile });
   } catch (e) {
@@ -377,11 +376,13 @@ export const deleteBookPdf = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     if (!book.pdfFile) return res.status(400).json({ message: "Aucun PDF associé" });
 
-    const filePath = path.join(uploadsDir, path.basename(book.pdfFile));
-    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); }
-    catch (e) { console.error("Erreur suppression PDF:", e.message); }
+    if (book.pdfPublicId) {
+      try { await destroyPdf(book.pdfPublicId); }
+      catch (e) { console.error("Erreur suppression PDF Cloudinary:", e.message); }
+    }
 
     book.pdfFile = undefined;
+    book.pdfPublicId = undefined;
     await book.save();
     res.status(200).json({ message: "PDF supprimé" });
   } catch (e) {

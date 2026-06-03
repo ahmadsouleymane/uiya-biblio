@@ -60,6 +60,9 @@ const bookSchema = new mongoose.Schema({
   pdfFile: {
     type: String
   },
+  pdfPublicId: {
+    type: String
+  },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

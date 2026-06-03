@@ -17,13 +17,13 @@ const fileFilter = (req, file, cb) => {
 
 export const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } })
 
-// Upload PDF sur disque
+// Upload PDF en mémoire (buffer envoyé ensuite vers Cloudinary, pas sur le disque)
 const pdfFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") cb(null, true)
   else cb(new Error("Seuls les fichiers PDF sont acceptés"), false)
 }
 
-export const uploadPdf = multer({ storage, fileFilter: pdfFilter, limits: { fileSize: 50 * 1024 * 1024 } })
+export const uploadPdf = multer({ storage: multer.memoryStorage(), fileFilter: pdfFilter, limits: { fileSize: 50 * 1024 * 1024 } })
 
 // Upload CSV en mémoire (pas sur disque)
 export const uploadCsv = multer({

@@ -35,6 +35,14 @@ function StarRating({ rating = 0, interactive = false, onRate }) {
   )
 }
 
+// Les PDF sont désormais hébergés sur Cloudinary (URL absolue). Les anciens
+// chemins relatifs (/uploads/...) restent gérés par compatibilité.
+const resolvePdfUrl = (pdfFile) => {
+  if (!pdfFile) return ""
+  if (/^https?:\/\//i.test(pdfFile)) return pdfFile
+  return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${pdfFile}`
+}
+
 const CONDITION_LABEL = { neuf: "Neuf", bon: "Bon état", usé: "Usé", endommagé: "Endommagé" }
 const CONDITION_BADGE = { neuf: "badge badge-green", bon: "badge badge-blue", usé: "badge badge-yellow", endommagé: "badge badge-red" }
 
@@ -280,7 +288,7 @@ export default function BookPage() {
                   <BookOpen className="w-4 h-4" /> Lire le PDF
                 </button>
                 <a
-                  href={`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${book.pdfFile}`}
+                  href={resolvePdfUrl(book.pdfFile)}
                   download={`${book.title || "ebook"}.pdf`}
                   className="btn btn-sm text-center"
                   style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}
@@ -294,7 +302,7 @@ export default function BookPage() {
           {showPdf && book.pdfFile && (
             <Suspense fallback={null}>
               <PdfViewer
-                url={`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${book.pdfFile}`}
+                url={resolvePdfUrl(book.pdfFile)}
                 onClose={() => setShowPdf(false)}
               />
             </Suspense>
