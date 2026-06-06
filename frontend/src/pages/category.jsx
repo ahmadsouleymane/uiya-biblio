@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getBooks } from "../api/book";
 import Navbar from "../components/navbar"
@@ -47,6 +47,7 @@ export default function Category() {
     yearTo: "",
     condition: "",
     available: false,
+    pdfOnly: false,
     sortBy: "",
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
@@ -75,6 +76,7 @@ export default function Category() {
     if (debouncedFilters.yearTo) params.yearTo = debouncedFilters.yearTo;
     if (debouncedFilters.condition) params.condition = debouncedFilters.condition;
     if (debouncedFilters.available) params.available = "true";
+    if (debouncedFilters.pdfOnly) params.pdfOnly = "true";
     if (debouncedFilters.sortBy) params.sortBy = debouncedFilters.sortBy;
     return params;
   };
@@ -215,6 +217,11 @@ export default function Category() {
                   )}
                   {book.availableCopies > 0 && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-400 rounded-full shadow block" />
+                  )}
+                  {book.pdfFile && (
+                    <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
+                      <FileText className="w-2.5 h-2.5" /> Ebook
+                    </span>
                   )}
                 </div>
                 <p className="mt-1.5 text-xs font-semibold leading-tight line-clamp-2" style={{ color: "var(--fg)" }}>{book.title}</p>

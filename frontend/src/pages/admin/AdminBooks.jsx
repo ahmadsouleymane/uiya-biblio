@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, Plus, Trash2, BookOpen, ChevronLeft, ChevronRight, Upload, Tag, Pencil } from "lucide-react"
+import { Search, Plus, Trash2, BookOpen, ChevronLeft, ChevronRight, Upload, Tag, Pencil, FileText } from "lucide-react"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import { getBooks, deleteBook } from "../../api/book"
@@ -107,13 +107,18 @@ export default function AdminBooks() {
             <div className="books-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {paginated.map(book => (
                 <div key={book._id} className="group relative cursor-pointer" onClick={() => navigate(`/book/${book._id}`)}>
-                  <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
+                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
                     {book.cover ? (
                       <img src={book.cover} alt={book.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ background: "#e2e8f0" }}>
                         <BookOpen className="w-8 h-8" style={{ color: "var(--muted)" }} />
                       </div>
+                    )}
+                    {book.pdfFile && (
+                      <span className="absolute top-2 left-2 flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                        <FileText className="w-3 h-3" /> Ebook
+                      </span>
                     )}
                     {/* Desktop hover overlay */}
                     <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-xl items-center justify-center gap-2">

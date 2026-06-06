@@ -3,7 +3,7 @@ import Footer from "../components/footer";
 import {
   Search, ChevronRight, BookOpen, Users, Star, ArrowRight,
   UserCircle, BookMarked, Calendar, MapPin, Lightbulb,
-  LogIn, UserPlus, Bookmark, X, CheckCircle,
+  LogIn, UserPlus, Bookmark, X, CheckCircle, FileText,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -70,13 +70,18 @@ const steps = [
 function BookCard({ book, onClick }) {
   return (
     <div onClick={onClick} className="shrink-0 w-32 md:w-36 cursor-pointer group">
-      <div className="aspect-[2/3] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all duration-300">
+      <div className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all duration-300">
         <img
           src={book.cover}
           alt={book.title}
           loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
+        {book.pdfFile && (
+          <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
+            <FileText className="w-2.5 h-2.5" /> Ebook
+          </span>
+        )}
       </div>
       <p className="mt-2 text-sm font-semibold truncate" style={{ color: "var(--fg)" }}>{book.title}</p>
       <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{Array.isArray(book.author) ? book.author[0] : book.author}</p>
@@ -652,13 +657,18 @@ export default function Home() {
                     onClick={() => navigate(`/book/${book._id}`)}
                     className="cursor-pointer group"
                   >
-                    <div className="aspect-[2/3] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all duration-300">
+                    <div className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all duration-300">
                       <img
                         src={book.cover}
                         alt={book.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      {book.pdfFile && (
+                        <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
+                          <FileText className="w-2.5 h-2.5" /> Ebook
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 text-sm font-semibold truncate" style={{ color: "var(--fg)" }}>{book.title}</p>
                     <p className="text-xs truncate" style={{ color: "var(--muted)" }}>

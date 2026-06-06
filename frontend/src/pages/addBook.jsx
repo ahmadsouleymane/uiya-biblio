@@ -4,8 +4,8 @@ import Navbar from "../components/navbar"
 import Footer from "../components/footer"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText, FileUp, FolderUp } from "lucide-react"
-import { addBook, generateBookDescription, uploadBookPdf } from "../api/book"
+import { ArrowLeft, Barcode, PenLine, Camera, CheckCircle, Loader2, X, Sparkles, Upload, FileText, FileUp, FolderUp, AlertTriangle, Trash2, Plus } from "lucide-react"
+import { addBook, generateBookDescription, uploadBookPdf, checkDuplicates } from "../api/book"
 import { getCategories } from "../api/category"
 import { useTheme } from "../contexts/ThemeContext"
 import { extractPdfMetadata } from "../utils/pdfMetadata"
@@ -63,6 +63,10 @@ export default function AddBook() {
   const [bulkRunning, setBulkRunning] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 })
   const [bulkResults, setBulkResults] = useState([])
+  // Nouveau flow : "select" → "extracting" → "review" → "uploading" → "done"
+  const [bulkStep, setBulkStep] = useState("select")
+  const [bulkDrafts, setBulkDrafts] = useState([])
+  const [bulkIncludeDups, setBulkIncludeDups] = useState(false)
 
   useEffect(() => { getCategories().then(data => { if (Array.isArray(data)) setCategories(data) }).catch(() => {}) }, [])
 
@@ -274,49 +278,155 @@ export default function AddBook() {
     return canvas.toDataURL("image/jpeg", 0.85)
   }
 
+  // ── Phase 1 : extraction des métadonnées + détection de doublons ──
   const handleFolderSelect = async (e) => {
     const all = Array.from(e.target.files || [])
     e.target.value = ""
     if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
     const pdfs = all.filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name))
-    if (pdfs.length === 0) { toast.error("Aucun PDF trouvé dans ce dossier"); return }
+    if (pdfs.length === 0) { toast.error("Aucun PDF trouvé"); return }
 
-    setBulkRunning(true)
+    setBulkStep("extracting")
     setBulkResults([])
+    setBulkDrafts([])
+    setBulkIncludeDups(false)
     setBulkProgress({ current: 0, total: pdfs.length })
 
-    const results = []
+    const drafts = []
     for (let i = 0; i < pdfs.length; i++) {
       const file = pdfs[i]
-      const name = file.name
       setBulkProgress({ current: i + 1, total: pdfs.length })
+      const name = file.name
+      const meta = await extractPdfMetadata(file).catch(() => ({}))
+      const baseTitle = (meta.title || name.replace(/\.pdf$/i, "")).slice(0, 200)
+      drafts.push({
+        id: `d-${Date.now()}-${i}`,
+        file,
+        fileName: name,
+        isbn: meta.isbn || `UIYA-${Date.now()}-${i}`,
+        title: baseTitle,
+        author: meta.author || "",
+        publisher: meta.publisher || "Inconnu",
+        year: meta.year || String(new Date().getFullYear()),
+        pages: Number(meta.pages) || 1,
+        cover: meta.cover || makePlaceholderCover(baseTitle),
+        duplicate: false,
+        duplicateMsg: "",
+        duplicateExistingId: null,
+      })
+    }
+    setBulkDrafts(drafts)
+
+    // Détection des doublons côté serveur
+    try {
+      const items = drafts.map(d => ({ isbn: d.isbn, title: d.title, author: d.author }))
+      const resp = await checkDuplicates(items)
+      const results = Array.isArray(resp?.results) ? resp.results : []
+      setBulkDrafts(prev => prev.map((d, i) => {
+        const r = results[i]
+        if (!r?.duplicate) return d
+        return {
+          ...d,
+          duplicate: true,
+          duplicateMsg: r.reason === "isbn" ? "Même ISBN" : "Même titre + auteur",
+          duplicateExistingId: r.existingId || null,
+        }
+      }))
+    } catch (err) {
+      console.error("Duplicate check failed:", err)
+    }
+
+    setBulkStep("review")
+  }
+
+  const updateDraft = (id, patch) => {
+    setBulkDrafts(prev => prev.map(d => d.id === id
+      ? { ...d, ...patch, duplicate: false, duplicateMsg: "" }
+      : d))
+  }
+
+  const removeDraft = (id) => {
+    setBulkDrafts(prev => prev.filter(d => d.id !== id))
+  }
+
+  const recheckDuplicates = async () => {
+    if (bulkDrafts.length === 0) return
+    toast.loading("Revérification…", { id: "recheck" })
+    try {
+      const items = bulkDrafts.map(d => ({ isbn: d.isbn, title: d.title, author: d.author }))
+      const resp = await checkDuplicates(items)
+      const results = Array.isArray(resp?.results) ? resp.results : []
+      setBulkDrafts(prev => prev.map((d, i) => {
+        const r = results[i]
+        return r?.duplicate
+          ? { ...d, duplicate: true, duplicateMsg: r.reason === "isbn" ? "Même ISBN" : "Même titre + auteur", duplicateExistingId: r.existingId || null }
+          : { ...d, duplicate: false, duplicateMsg: "", duplicateExistingId: null }
+      }))
+      toast.dismiss("recheck")
+      toast.success("Vérification terminée")
+    } catch {
+      toast.dismiss("recheck")
+      toast.error("Erreur lors de la vérification")
+    }
+  }
+
+  // ── Phase 2 : upload des drafts validés ───────────────────────────
+  const handleConfirmBulkUpload = async () => {
+    const toUpload = bulkIncludeDups ? bulkDrafts : bulkDrafts.filter(d => !d.duplicate)
+    if (toUpload.length === 0) { toast.error("Aucun livre à ajouter"); return }
+
+    setBulkStep("uploading")
+    setBulkRunning(true)
+    setBulkResults([])
+    setBulkProgress({ current: 0, total: toUpload.length })
+
+    const results = []
+    for (let i = 0; i < toUpload.length; i++) {
+      const d = toUpload[i]
+      setBulkProgress({ current: i + 1, total: toUpload.length })
       try {
-        const meta = await extractPdfMetadata(file).catch(() => ({}))
         const payload = {
-          isbn: meta.isbn || `UIYA-${Date.now()}-${i}`,
-          title: (meta.title || name.replace(/\.pdf$/i, "")).slice(0, 200),
-          author: meta.author || "Auteur inconnu",
-          publisher: meta.publisher || "Inconnu",
-          year: meta.year || String(new Date().getFullYear()),
-          pages: Number(meta.pages) || 1,
+          isbn: d.isbn,
+          title: d.title.slice(0, 200),
+          author: d.author?.trim() || "Auteur inconnu",
+          publisher: d.publisher?.trim() || "Inconnu",
+          year: String(d.year || new Date().getFullYear()),
+          pages: Number(d.pages) || 1,
           category: bulkCategory,
-          cover: meta.cover || makePlaceholderCover(meta.title || name),
+          cover: d.cover,
           copies: 1,
           condition: "bon",
           skipDescription: true,
         }
         const data = await addBook(payload)
-        if (!data.book) { results.push({ name, ok: false, msg: data.message || "Échec" }); setBulkResults([...results]); continue }
-        try { await uploadBookPdf(data.book._id, file); results.push({ name, ok: true, msg: "Ajouté" }) }
-        catch { results.push({ name, ok: true, msg: "Ajouté (PDF non uploadé)" }) }
-      } catch {
-        results.push({ name, ok: false, msg: "Erreur de traitement" })
+        if (!data?.book) {
+          results.push({ name: d.title, ok: false, msg: data?.message || "Échec" })
+        } else {
+          try { await uploadBookPdf(data.book._id, d.file); results.push({ name: d.title, ok: true, msg: "Ajouté" }) }
+          catch (err) {
+            console.error("PDF upload failed:", err)
+            results.push({ name: d.title, ok: true, msg: "Ajouté (PDF non uploadé)" })
+          }
+        }
+      } catch (err) {
+        console.error("Bulk add failed:", err)
+        results.push({ name: d.title, ok: false, msg: "Erreur réseau" })
       }
       setBulkResults([...results])
     }
     setBulkRunning(false)
+    setBulkStep("done")
     const okCount = results.filter(r => r.ok).length
-    toast.success(`${okCount}/${pdfs.length} livre(s) ajouté(s)`)
+    toast.success(`${okCount}/${toUpload.length} livre(s) ajouté(s)`)
+  }
+
+  const resetBulk = () => {
+    setBulkStep("select")
+    setBulkDrafts([])
+    setBulkResults([])
+    setBulkProgress({ current: 0, total: 0 })
+    setBulkIncludeDups(false)
+    setBulkRunning(false)
   }
 
   // ── Génération IA de description ──────────────────────────────────
@@ -483,117 +593,254 @@ export default function AddBook() {
         {/* ── Import en masse (dossier) ─────────────────────── */}
         {step === "bulk" && (
           <div className="space-y-5">
-            <button onClick={() => !bulkRunning && setStep("method")} disabled={bulkRunning} className="flex items-center gap-2 text-sm font-medium disabled:opacity-50" style={{ color: "var(--muted)" }}>
+            <button onClick={() => !bulkRunning && (setStep("method"), resetBulk())} disabled={bulkRunning} className="flex items-center gap-2 text-sm font-medium disabled:opacity-50" style={{ color: "var(--muted)" }}>
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
             <div>
               <p className="overline mb-1">Catalogue</p>
               <h1 className="text-2xl font-black text-primary">Ajout de plusieurs livres</h1>
               <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                Sélectionnez plusieurs fichiers PDF ou un dossier entier. Chaque PDF devient un livre —
-                titre, auteur, pages et couverture sont extraits automatiquement.
+                Sélectionnez plusieurs PDF. Les métadonnées sont extraites, vous pouvez tout vérifier et corriger avant l'envoi. Les doublons sont détectés automatiquement.
               </p>
             </div>
 
-            <div className="card-p space-y-4">
-              {/* Catégorie appliquée à tout le lot */}
-              <div>
-                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Catégorie appliquée à tous les livres *</label>
-                <select
-                  value={bulkCategory}
-                  onChange={e => setBulkCategory(e.target.value)}
-                  disabled={bulkRunning}
-                  className="input"
-                  style={{ color: bulkCategory ? "var(--fg)" : "var(--muted)" }}
-                >
-                  <option value="" disabled>Choisir une catégorie *</option>
-                  {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
-                </select>
-              </div>
+            {/* ── Étape 1 : sélection ─────────────────────────── */}
+            {bulkStep === "select" && (
+              <div className="card-p space-y-4">
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--muted)" }}>Catégorie appliquée à tous les livres *</label>
+                  <select
+                    value={bulkCategory}
+                    onChange={e => setBulkCategory(e.target.value)}
+                    className="input"
+                    style={{ color: bulkCategory ? "var(--fg)" : "var(--muted)" }}
+                  >
+                    <option value="" disabled>Choisir une catégorie *</option>
+                    {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
 
-              {/* Sélection d'un dossier entier */}
-              <input
-                ref={(el) => {
-                  folderInputRef.current = el
-                  // webkitdirectory doit être posé en impératif (React le filtre en JSX)
-                  if (el) { el.setAttribute("webkitdirectory", ""); el.setAttribute("directory", "") }
-                }}
-                type="file"
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={handleFolderSelect}
-              />
-              {/* Sélection de plusieurs fichiers PDF */}
-              <input
-                ref={filesInputRef}
-                type="file"
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={handleFolderSelect}
-              />
+                <input
+                  ref={(el) => {
+                    folderInputRef.current = el
+                    if (el) { el.setAttribute("webkitdirectory", ""); el.setAttribute("directory", "") }
+                  }}
+                  type="file" accept="application/pdf" multiple className="hidden"
+                  onChange={handleFolderSelect}
+                />
+                <input
+                  ref={filesInputRef}
+                  type="file" accept="application/pdf" multiple className="hidden"
+                  onChange={handleFolderSelect}
+                />
 
-              {bulkRunning ? (
-                <button disabled className="btn btn-primary btn-lg w-full opacity-60">
-                  <Loader2 className="w-5 h-5 animate-spin" /> Import en cours… {bulkProgress.current}/{bulkProgress.total}
-                </button>
-              ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
-                    onClick={() => {
-                      if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
-                      filesInputRef.current?.click()
-                    }}
+                    onClick={() => { if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return } filesInputRef.current?.click() }}
                     className="btn btn-primary btn-lg w-full"
                   >
                     <FileUp className="w-5 h-5" /> Plusieurs fichiers
                   </button>
                   <button
-                    onClick={() => {
-                      if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return }
-                      folderInputRef.current?.click()
-                    }}
+                    onClick={() => { if (!bulkCategory) { toast.error("Choisissez d'abord une catégorie"); return } folderInputRef.current?.click() }}
                     className="btn btn-ghost btn-lg w-full"
                   >
                     <FolderUp className="w-5 h-5" /> Un dossier entier
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Barre de progression */}
-              {bulkProgress.total > 0 && (
+            {/* ── Étape 2 : extraction en cours ───────────────── */}
+            {bulkStep === "extracting" && (
+              <div className="card-p text-center space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin mx-auto text-secondary" />
+                <p className="font-semibold text-primary">Lecture des PDF…</p>
+                <p className="text-sm" style={{ color: "var(--muted)" }}>{bulkProgress.current} / {bulkProgress.total}</p>
                 <div className="w-full rounded-full h-2" style={{ background: "var(--border-md)" }}>
                   <div className="bg-secondary h-2 rounded-full transition-all" style={{ width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%` }} />
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Résultats */}
-              {bulkResults.length > 0 && (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {bulkResults.map((r, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg text-sm" style={{ background: "var(--bg-card)" }}>
-                      {r.ok
-                        ? <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "#16a34a" }} />
-                        : <X className="w-4 h-4 shrink-0" style={{ color: "#e11d48" }} />}
-                      <span className="truncate flex-1" style={{ color: "var(--fg)" }}>{r.name}</span>
-                      <span className="text-xs shrink-0" style={{ color: r.ok ? "#16a34a" : "#e11d48" }}>{r.msg}</span>
+            {/* ── Étape 3 : aperçu et édition ─────────────────── */}
+            {bulkStep === "review" && (
+              <div className="space-y-4">
+                {(() => {
+                  const dupCount = bulkDrafts.filter(d => d.duplicate).length
+                  const okCount = bulkDrafts.length - dupCount
+                  return (
+                    <div className="card-p flex flex-wrap items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-primary text-base">{bulkDrafts.length} livre(s) prêts</p>
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>
+                          {okCount} à ajouter
+                          {dupCount > 0 && <span style={{ color: "#e11d48" }}> · {dupCount} doublon(s) détecté(s)</span>}
+                        </p>
+                      </div>
+                      <button onClick={recheckDuplicates} className="btn btn-ghost btn-sm">
+                        <Sparkles className="w-4 h-4" /> Re-vérifier les doublons
+                      </button>
+                    </div>
+                  )
+                })()}
+
+                {bulkDrafts.length === 0 && (
+                  <div className="card-p text-center" style={{ color: "var(--muted)" }}>
+                    <p>Aucun livre dans la liste.</p>
+                    <button onClick={resetBulk} className="btn btn-primary mt-3">Recommencer</button>
+                  </div>
+                )}
+
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                  {bulkDrafts.map((d) => (
+                    <div
+                      key={d.id}
+                      className="rounded-2xl border p-3 flex gap-3"
+                      style={{
+                        background: d.duplicate ? "rgba(225,29,72,0.06)" : "var(--surface)",
+                        borderColor: d.duplicate ? "rgba(225,29,72,0.4)" : "var(--border)",
+                      }}
+                    >
+                      <img
+                        src={d.cover}
+                        alt={d.title}
+                        className="w-16 h-24 object-cover rounded-lg shrink-0 shadow-sm"
+                        loading="lazy"
+                      />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {d.duplicate && (
+                          <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: "#e11d48" }}>
+                            <AlertTriangle className="w-3.5 h-3.5" /> Doublon — {d.duplicateMsg}
+                          </div>
+                        )}
+                        <input
+                          value={d.title}
+                          onChange={e => updateDraft(d.id, { title: e.target.value })}
+                          placeholder="Titre"
+                          className="input input-sm w-full font-semibold"
+                        />
+                        <input
+                          value={d.author}
+                          onChange={e => updateDraft(d.id, { author: e.target.value })}
+                          placeholder="Auteur"
+                          className="input input-sm w-full"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            value={d.year}
+                            onChange={e => updateDraft(d.id, { year: e.target.value })}
+                            placeholder="Année"
+                            className="input input-sm"
+                          />
+                          <input
+                            value={d.pages}
+                            onChange={e => updateDraft(d.id, { pages: e.target.value })}
+                            placeholder="Pages"
+                            type="number"
+                            className="input input-sm"
+                          />
+                          <input
+                            value={d.isbn}
+                            onChange={e => updateDraft(d.id, { isbn: e.target.value })}
+                            placeholder="ISBN"
+                            className="input input-sm"
+                          />
+                        </div>
+                        <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>📄 {d.fileName}</p>
+                      </div>
+                      <button
+                        onClick={() => removeDraft(d.id)}
+                        className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center hover:bg-red-50"
+                        title="Retirer"
+                        style={{ color: "#e11d48" }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
-              )}
 
-              {!bulkRunning && bulkResults.length > 0 && (
-                <div className="flex gap-3">
-                  <button onClick={() => { setBulkResults([]); setBulkProgress({ current: 0, total: 0 }) }} className="btn btn-ghost flex-1">
-                    Importer un autre dossier
-                  </button>
-                  <button onClick={() => navigate("/admin/livres")} className="btn btn-primary flex-1">
-                    Voir les livres
-                  </button>
+                {bulkDrafts.some(d => d.duplicate) && (
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer" style={{ background: "rgba(225,29,72,0.06)" }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkIncludeDups}
+                      onChange={e => setBulkIncludeDups(e.target.checked)}
+                      className="w-4 h-4"
+                      style={{ accentColor: "#e11d48" }}
+                    />
+                    <span className="text-xs font-semibold" style={{ color: "var(--fg)" }}>
+                      Ajouter quand même les doublons
+                    </span>
+                  </label>
+                )}
+
+                {bulkDrafts.length > 0 && (
+                  <div className="flex flex-col sm:flex-row gap-2 sticky bottom-0 py-2" style={{ background: "var(--bg)" }}>
+                    <button onClick={resetBulk} className="btn btn-ghost flex-1">Tout annuler</button>
+                    <button
+                      onClick={handleConfirmBulkUpload}
+                      className="btn btn-primary flex-1"
+                      disabled={!(bulkIncludeDups ? bulkDrafts.length : bulkDrafts.filter(d => !d.duplicate).length)}
+                    >
+                      <Plus className="w-4 h-4" /> Ajouter {bulkIncludeDups ? bulkDrafts.length : bulkDrafts.filter(d => !d.duplicate).length} livre(s)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Étape 4 : upload en cours ───────────────────── */}
+            {bulkStep === "uploading" && (
+              <div className="card-p space-y-4">
+                <div className="text-center space-y-2">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-secondary" />
+                  <p className="font-semibold text-primary">Envoi en cours… {bulkProgress.current}/{bulkProgress.total}</p>
                 </div>
-              )}
-            </div>
+                <div className="w-full rounded-full h-2" style={{ background: "var(--border-md)" }}>
+                  <div className="bg-secondary h-2 rounded-full transition-all" style={{ width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%` }} />
+                </div>
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                  {bulkResults.map((r, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      {r.ok
+                        ? <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#16a34a" }} />
+                        : <X className="w-3.5 h-3.5 shrink-0" style={{ color: "#e11d48" }} />}
+                      <span className="truncate flex-1" style={{ color: "var(--fg)" }}>{r.name}</span>
+                      <span style={{ color: r.ok ? "#16a34a" : "#e11d48" }}>{r.msg}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Étape 5 : terminé ──────────────────────────── */}
+            {bulkStep === "done" && (
+              <div className="card-p space-y-4">
+                <div className="text-center space-y-1">
+                  <CheckCircle className="w-10 h-10 mx-auto" style={{ color: "#16a34a" }} />
+                  <p className="font-bold text-primary text-lg">
+                    {bulkResults.filter(r => r.ok).length} / {bulkResults.length} ajouté(s)
+                  </p>
+                </div>
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                  {bulkResults.map((r, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      {r.ok
+                        ? <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#16a34a" }} />
+                        : <X className="w-3.5 h-3.5 shrink-0" style={{ color: "#e11d48" }} />}
+                      <span className="truncate flex-1" style={{ color: "var(--fg)" }}>{r.name}</span>
+                      <span style={{ color: r.ok ? "#16a34a" : "#e11d48" }}>{r.msg}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={resetBulk} className="btn btn-ghost flex-1">Importer d'autres livres</button>
+                  <button onClick={() => navigate("/admin/livres")} className="btn btn-primary flex-1">Voir les livres</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

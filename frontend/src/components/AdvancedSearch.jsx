@@ -34,6 +34,7 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
     filters.yearTo,
     filters.condition,
     filters.available,
+    filters.pdfOnly,
     filters.sortBy,
   ].filter(Boolean).length
 
@@ -46,6 +47,7 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
       yearTo: "",
       condition: "",
       available: false,
+      pdfOnly: false,
       sortBy: "",
     })
   }
@@ -219,18 +221,30 @@ export default function AdvancedSearch({ filters, onChange, onSearch }) {
             </div>
           </div>
 
-          {/* Ligne 4 : Disponibles + Réinitialiser */}
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={filters.available || false}
-                onChange={e => onChange({ ...filters, available: e.target.checked })}
-                className="w-4 h-4 rounded accent-crimson"
-                style={{ accentColor: "#A71E3C" }}
-              />
-              <span className="text-sm font-semibold text-white/80">Disponibles uniquement</span>
-            </label>
+          {/* Ligne 4 : Disponibles + Ebook + Réinitialiser */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.available || false}
+                  onChange={e => onChange({ ...filters, available: e.target.checked })}
+                  className="w-4 h-4 rounded accent-crimson"
+                  style={{ accentColor: "#A71E3C" }}
+                />
+                <span className="text-sm font-semibold text-white/80">Disponibles uniquement</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.pdfOnly || false}
+                  onChange={e => onChange({ ...filters, pdfOnly: e.target.checked })}
+                  className="w-4 h-4 rounded accent-crimson"
+                  style={{ accentColor: "#A71E3C" }}
+                />
+                <span className="text-sm font-semibold text-white/80">Ebooks uniquement</span>
+              </label>
+            </div>
 
             {activeCount > 0 && (
               <button

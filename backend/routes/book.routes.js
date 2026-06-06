@@ -1,6 +1,6 @@
 import express from "express"
 import multer from "multer"
-import { addBook, getBooks, getBookById, getBookByIsbn, updateBook, deleteBook, getStats, getRecommendations, importBooksFromCsv, generateDescription, generateAllDescriptions, uploadBookPdf, deleteBookPdf } from "../controllers/book.controller.js"
+import { addBook, getBooks, getBookById, getBookByIsbn, updateBook, deleteBook, getStats, getRecommendations, importBooksFromCsv, generateDescription, generateAllDescriptions, uploadBookPdf, deleteBookPdf, checkDuplicates } from "../controllers/book.controller.js"
 import { protect } from "../middleware/auth.middleware.js"
 import { uploadCsv, uploadPdf } from "../middleware/upload.middleware.js"
 
@@ -27,6 +27,7 @@ router.get("/isbn/:isbn", getBookByIsbn)
 router.post("/import-csv", protect(["admin"]), uploadCsv.single("file"), importBooksFromCsv)
 router.post("/generate-description", protect(["admin", "employee"]), generateDescription)
 router.post("/generate-all-descriptions", protect(["admin"]), generateAllDescriptions)
+router.post("/check-duplicates", protect(["admin", "employee"]), checkDuplicates)
 
 // Routes dynamiques /:id — les plus spécifiques d'abord
 router.post("/:id/upload-pdf", protect(["admin", "employee"]), handleUpload(uploadPdf.single("pdf")), uploadBookPdf)

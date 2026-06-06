@@ -440,21 +440,47 @@ export default function BookPage() {
 
           {/* CTA desktop */}
           <div className="hidden lg:block space-y-3">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
-                <p className="font-bold text-primary text-sm flex items-center gap-1"><Clock className="w-4 h-4" /> {loanDays} jours</p>
-              </div>
-            </div>
-            {book.availableCopies > 0 ? (
-              <button onClick={handleBorrow} disabled={borrowing}
-                className="w-full h-14 rounded-2xl font-bold text-lg bg-secondary text-white hover:bg-secondary/90 shadow-lg shadow-secondary/30 disabled:opacity-60 transition-all">
-                {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
-              </button>
+            {book.pdfFile ? (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs" style={{ color: "var(--muted)" }}>Ebook</p>
+                    <p className="font-bold text-sm flex items-center gap-1" style={{ color: "#16a34a" }}>
+                      <FileText className="w-4 h-4" /> Lecture immédiate
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPdf(true)} className="w-full h-14 rounded-2xl font-bold text-lg text-white shadow-lg transition-all" style={{ background: "#16a34a" }}>
+                  Lire l'ebook
+                </button>
+                <a
+                  href={resolvePdfUrl(book.pdfFile)}
+                  download={`${book.title || "ebook"}.pdf`}
+                  className="w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "rgba(34,197,94,0.12)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}
+                >
+                  <Download className="w-4 h-4" /> Télécharger
+                </a>
+              </>
             ) : (
-              <button disabled className="w-full h-14 rounded-2xl font-bold text-lg cursor-not-allowed" style={{ background: "var(--border-md)", color: "var(--muted)" }}>
-                Indisponible
-              </button>
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
+                    <p className="font-bold text-primary text-sm flex items-center gap-1"><Clock className="w-4 h-4" /> {loanDays} jours</p>
+                  </div>
+                </div>
+                {book.availableCopies > 0 ? (
+                  <button onClick={handleBorrow} disabled={borrowing}
+                    className="w-full h-14 rounded-2xl font-bold text-lg bg-secondary text-white hover:bg-secondary/90 shadow-lg shadow-secondary/30 disabled:opacity-60 transition-all">
+                    {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
+                  </button>
+                ) : (
+                  <button disabled className="w-full h-14 rounded-2xl font-bold text-lg cursor-not-allowed" style={{ background: "var(--border-md)", color: "var(--muted)" }}>
+                    Indisponible
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -469,17 +495,35 @@ export default function BookPage() {
         }}
       >
         <div className="w-full flex items-center gap-3">
-          <div className="flex-1">
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
-            <p className="font-bold text-primary text-sm">{loanDays} jours</p>
-          </div>
-          {book.availableCopies > 0 ? (
-            <button onClick={handleBorrow} disabled={borrowing}
-              className="flex-1 h-14 rounded-2xl font-bold text-lg bg-secondary text-white hover:bg-secondary/90 shadow-lg shadow-secondary/30 disabled:opacity-60 transition-all">
-              {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
-            </button>
+          {book.pdfFile ? (
+            <>
+              <button onClick={() => setShowPdf(true)} className="flex-1 h-14 rounded-2xl font-bold text-base text-white shadow-lg flex items-center justify-center gap-2" style={{ background: "#16a34a" }}>
+                <BookOpen className="w-5 h-5" /> Lire
+              </button>
+              <a
+                href={resolvePdfUrl(book.pdfFile)}
+                download={`${book.title || "ebook"}.pdf`}
+                className="flex-1 h-14 rounded-2xl font-bold text-base flex items-center justify-center gap-2"
+                style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}
+              >
+                <Download className="w-5 h-5" /> Télécharger
+              </a>
+            </>
           ) : (
-            <button disabled className="flex-1 h-14 rounded-2xl font-bold text-lg" style={{ background: "var(--border-md)", color: "var(--muted)" }}>Indisponible</button>
+            <>
+              <div className="flex-1">
+                <p className="text-xs" style={{ color: "var(--muted)" }}>Durée d'emprunt</p>
+                <p className="font-bold text-primary text-sm">{loanDays} jours</p>
+              </div>
+              {book.availableCopies > 0 ? (
+                <button onClick={handleBorrow} disabled={borrowing}
+                  className="flex-1 h-14 rounded-2xl font-bold text-lg bg-secondary text-white hover:bg-secondary/90 shadow-lg shadow-secondary/30 disabled:opacity-60 transition-all">
+                  {borrowing ? <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : "Emprunter"}
+                </button>
+              ) : (
+                <button disabled className="flex-1 h-14 rounded-2xl font-bold text-lg" style={{ background: "var(--border-md)", color: "var(--muted)" }}>Indisponible</button>
+              )}
+            </>
           )}
         </div>
       </div>

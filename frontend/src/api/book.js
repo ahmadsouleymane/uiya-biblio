@@ -59,6 +59,9 @@ export const uploadBookPdf = (bookId, file) => {
 export const deleteBookPdf = (bookId) =>
   apiFetch(`${API}/${bookId}/pdf`, { method: "DELETE" }).then(r => r.json())
 
+export const checkDuplicates = (items) =>
+  apiFetch(`${API}/check-duplicates`, { ...opts, method: "POST", body: JSON.stringify({ items }) }).then(r => r.json())
+
 export const importBooksCsv = (file) => {
   const formData = new FormData()
   formData.append("file", file)

@@ -6,6 +6,35 @@ import { uploadPdfBuffer, destroyPdf, isCloudinaryConfigured } from "../config/c
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Clé de normalisation pour détecter les doublons titre+auteur indépendamment
+// de la casse, des accents, de la ponctuation et des espaces multiples.
+const normalizeKey = (s) => String(s || "")
+  .normalize("NFD").replace(/[̀-ͯ]/g, "") // retire les accents
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
+const firstAuthor = (a) => Array.isArray(a) ? a[0] : a;
+
+// Cherche un livre existant par ISBN (si fourni et "vrai" ISBN) puis par
+// combinaison titre+auteur normalisée. Renvoie le doc trouvé ou null.
+const findDuplicate = async ({ isbn, title, author }) => {
+  if (isbn && !/^UIYA-/i.test(isbn)) {
+    const byIsbn = await Book.findOne({ isbn }).lean();
+    if (byIsbn) return { book: byIsbn, reason: "isbn" };
+  }
+  const titleKey = normalizeKey(title);
+  const authorKey = normalizeKey(firstAuthor(author));
+  if (!titleKey || !authorKey) return null;
+  const candidates = await Book.find({ title: { $regex: escapeRegex(titleKey.slice(0, 30)), $options: "i" } }).lean();
+  for (const b of candidates) {
+    if (normalizeKey(b.title) === titleKey && normalizeKey(firstAuthor(b.author)) === authorKey) {
+      return { book: b, reason: "title_author" };
+    }
+  }
+  return null;
+};
+
 export const generateDescription = async (req, res) => {
   try {
     const { title, author } = req.body;
@@ -74,8 +103,13 @@ export const addBook = async (req, res) => {
       return res.status(400).json({ message: "Veuillez remplir tous les champs obligatoires" });
     }
 
-    const existing = await Book.findOne({ isbn });
-    if (existing) return res.status(400).json({ message: "Ce livre existe déjà (ISBN dupliqué)" });
+    const dup = await findDuplicate({ isbn, title, author });
+    if (dup) {
+      const reason = dup.reason === "isbn"
+        ? "Ce livre existe déjà (même ISBN)"
+        : "Ce livre existe déjà (même titre et auteur)";
+      return res.status(409).json({ message: reason, existingId: dup.book._id, existingTitle: dup.book.title });
+    }
 
     // Si pas de description fournie, générer automatiquement via IA — sauf en
     // import de masse (skipDescription) où l'admin lancera la génération groupée après.
@@ -106,6 +140,52 @@ export const addBook = async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: "Erreur lors de l'ajout du livre" });
+  }
+};
+
+// Vérifie en masse si une liste de livres candidats existe déjà.
+// Body: { items: [{ isbn, title, author }, ...] }
+// Réponse: { results: [{ duplicate: bool, reason?, existingId?, existingTitle? }] }
+//
+// Pour rester rapide même sur des milliers d'items, on charge tous les livres
+// une seule fois en mémoire et on construit deux index :
+//   - isbnIndex   : ISBN exact → livre
+//   - titleAuthorIndex : titre+auteur normalisés → livre
+// Puis on parcourt les items en O(1) chacun.
+export const checkDuplicates = async (req, res) => {
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (items.length === 0) return res.status(200).json({ results: [] });
+
+    const all = await Book.find({}, { _id: 1, isbn: 1, title: 1, author: 1 }).lean();
+    const isbnIndex = new Map();
+    const taIndex = new Map();
+    for (const b of all) {
+      if (b.isbn) isbnIndex.set(b.isbn, b);
+      const tk = normalizeKey(b.title);
+      const ak = normalizeKey(firstAuthor(b.author));
+      if (tk && ak) taIndex.set(tk + "||" + ak, b);
+    }
+
+    const results = items.map((it) => {
+      const isbn = it?.isbn;
+      if (isbn && !/^UIYA-/i.test(isbn)) {
+        const hit = isbnIndex.get(isbn);
+        if (hit) return { duplicate: true, reason: "isbn", existingId: hit._id, existingTitle: hit.title };
+      }
+      const tk = normalizeKey(it?.title);
+      const ak = normalizeKey(firstAuthor(it?.author));
+      if (tk && ak) {
+        const hit = taIndex.get(tk + "||" + ak);
+        if (hit) return { duplicate: true, reason: "title_author", existingId: hit._id, existingTitle: hit.title };
+      }
+      return { duplicate: false };
+    });
+
+    res.status(200).json({ results });
+  } catch (e) {
+    console.error("checkDuplicates error:", e);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
