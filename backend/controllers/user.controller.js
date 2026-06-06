@@ -133,6 +133,7 @@ export const updateMe = async (req, res) => {
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
     res.status(200).json(user);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -152,15 +153,43 @@ export const getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
     res.status(200).json(user);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    const { search, role, page, limit } = req.query;
+    const filter = {};
+    if (role) filter.role = role;
+    if (search) {
+      const esc = String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [
+        { fullName: { $regex: esc, $options: "i" } },
+        { email:    { $regex: esc, $options: "i" } },
+        { phone:    { $regex: esc, $options: "i" } },
+      ];
+    }
+
+    const pageNum = parseInt(page) || 0;
+    const limitNum = parseInt(limit) || 0;
+
+    if (pageNum > 0 && limitNum > 0) {
+      const total = await User.countDocuments(filter);
+      const users = await User.find(filter)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .allowDiskUse(true)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum);
+      return res.status(200).json({ users, total, page: pageNum, pages: Math.ceil(total / limitNum) });
+    }
+
+    const users = await User.find(filter).select("-password").sort({ createdAt: -1 }).allowDiskUse(true);
     res.status(200).json(users);
   } catch (err) {
+    console.error("getAllUsers error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -184,6 +213,7 @@ export const updateUserRole = async (req, res) => {
 
     res.status(200).json(user);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -206,6 +236,7 @@ export const deleteUser = async (req, res) => {
 
     res.status(200).json({ message: "Utilisateur supprimé" });
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -284,6 +315,7 @@ export const addFavorite = async (req, res) => {
 
     res.status(200).json(user.favorites);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -298,6 +330,7 @@ export const removeFavorite = async (req, res) => {
 
     res.status(200).json(user.favorites);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -309,6 +342,7 @@ export const getFavorites = async (req, res) => {
       .populate("favorites");
     res.status(200).json(user.favorites || []);
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -422,6 +456,7 @@ export const getUserStats = async (req, res) => {
       byMonth,
     });
   } catch (err) {
+    console.error("[user] error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

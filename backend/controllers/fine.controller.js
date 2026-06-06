@@ -15,6 +15,7 @@ export const getAllFines = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(fines);
   } catch (e) {
+    console.error("[fine] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -27,6 +28,7 @@ export const getUserFines = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(fines);
   } catch (e) {
+    console.error("[fine] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -53,6 +55,7 @@ export const payFine = async (req, res) => {
     await fine.populate(["user", "loan", "paidBy"]);
     res.status(200).json(fine);
   } catch (e) {
+    console.error("[fine] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -75,6 +78,7 @@ export const createManualFine = async (req, res) => {
     await fine.populate(["user", "loan"]);
     res.status(201).json(fine);
   } catch (e) {
+    console.error("[fine] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -94,6 +98,7 @@ export const deleteFine = async (req, res) => {
 
     res.status(200).json({ message: "Amende supprimée" });
   } catch (e) {
+    console.error("[fine] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

@@ -6,6 +6,7 @@ export const getSettings = async (req, res) => {
     await settings.populate("featuredBook", "title author cover _id");
     res.status(200).json(settings);
   } catch (e) {
+    console.error("[settings] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -22,6 +23,7 @@ export const updateSettings = async (req, res) => {
     await settings.save();
     res.status(200).json(settings);
   } catch (e) {
+    console.error("[settings] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

@@ -319,7 +319,7 @@ export default function Profile() {
                           style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
                           onClick={() => loan.book?._id && navigate(`/book/${loan.book._id}`)}>
                           {loan.book?.cover ? (
-                            <img src={loan.book.cover} alt={loan.book.title} className="w-12 h-16 object-cover rounded-xl shrink-0 shadow-sm" />
+                            <img src={loan.book.cover} alt={loan.book.title} loading="lazy" className="w-12 h-16 object-cover rounded-xl shrink-0 shadow-sm" />
                           ) : (
                             <div className="w-12 h-16 rounded-xl shrink-0 flex items-center justify-center" style={{ background: "#e2e8f0" }}>
                               <BookOpen className="w-4 h-4" style={{ color: "var(--muted)" }} />
@@ -363,7 +363,7 @@ export default function Profile() {
                     {favorites.map(book => (
                       <div key={book._id || book} className="relative group cursor-pointer" onClick={() => navigate(`/book/${book._id || book}`)}>
                         {book.cover ? (
-                          <img src={book.cover} alt={book.title} className="w-full aspect-[2/3] object-cover rounded-2xl shadow-md" />
+                          <img src={book.cover} alt={book.title} loading="lazy" className="w-full aspect-[2/3] object-cover rounded-2xl shadow-md" />
                         ) : (
                           <div className="w-full aspect-[2/3] rounded-2xl bg-gray-100 flex items-center justify-center">
                             <BookOpen className="w-8 h-8 text-gray-300" />

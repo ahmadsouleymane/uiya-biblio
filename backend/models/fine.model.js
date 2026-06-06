@@ -40,5 +40,9 @@ const fineSchema = new mongoose.Schema({
   }
 });
 
+fineSchema.index({ createdAt: -1 });
+fineSchema.index({ user: 1, status: 1 });
+fineSchema.index({ status: 1, createdAt: -1 });
+
 const Fine = mongoose.model('Fine', fineSchema);
 export default Fine;

@@ -7,6 +7,7 @@ export const getMyNotifications = async (req, res) => {
       .limit(30);
     res.status(200).json(notifications);
   } catch (e) {
+    console.error("[notification] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -19,6 +20,7 @@ export const markRead = async (req, res) => {
     );
     res.status(200).json({ ok: true });
   } catch (e) {
+    console.error("[notification] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -28,6 +30,7 @@ export const markAllRead = async (req, res) => {
     await Notification.updateMany({ user: req.user._id, read: false }, { read: true });
     res.status(200).json({ ok: true });
   } catch (e) {
+    console.error("[notification] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

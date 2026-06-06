@@ -19,6 +19,7 @@ export const getAuditLogs = async (req, res) => {
 
     res.status(200).json({ logs, total, page, pages: Math.ceil(total / limit) });
   } catch (e) {
+    console.error("[audit] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

@@ -31,6 +31,7 @@ export const checkOut = async (req, res) => {
 
     res.status(200).json(presence);
   } catch (e) {
+    console.error("[presence] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -49,6 +50,7 @@ export const getTodayPresence = async (req, res) => {
 
     res.status(200).json(presences);
   } catch (e) {
+    console.error("[presence] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -71,6 +73,7 @@ export const getPresenceHistory = async (req, res) => {
 
     res.status(200).json({ presences, total, page, pages: Math.ceil(total / limit) });
   } catch (e) {
+    console.error("[presence] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

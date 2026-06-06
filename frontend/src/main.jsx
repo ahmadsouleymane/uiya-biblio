@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { createRoot } from "react-dom/client"
+import { lazy, Suspense } from "react"
 import "./index.css"
 import { Toaster } from "react-hot-toast"
 import ScrollToTop from "./components/scrolltotop"
@@ -9,34 +10,36 @@ import ThemeProvider from "./contexts/ThemeContext"
 import BottomNav from "./components/BottomNav"
 import OfflineBanner from "./components/OfflineBanner"
 
+// Home eager (entry point — first paint)
 import Home from "./pages/home"
-import BookPage from "./pages/bookPage"
-import Category from "./pages/category"
-import Login from "./pages/login"
-import SignUp from "./pages/signup"
-import Profile from "./pages/profile"
 
-import Admin from "./pages/admin"
-import AdminUsers from "./pages/admin/AdminUsers"
-import AdminBooks from "./pages/admin/AdminBooks"
-import AdminLoans from "./pages/admin/AdminLoans"
-import AdminPresence from "./pages/admin/AdminPresence"
+// Everything else lazy
+const BookPage = lazy(() => import("./pages/bookPage"))
+const Category = lazy(() => import("./pages/category"))
+const Login = lazy(() => import("./pages/login"))
+const SignUp = lazy(() => import("./pages/signup"))
+const Profile = lazy(() => import("./pages/profile"))
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"))
+const ResetPassword = lazy(() => import("./pages/ResetPassword"))
+const QrPage = lazy(() => import("./pages/QrPage"))
+const Activity = lazy(() => import("./pages/activity"))
+const AddBook = lazy(() => import("./pages/addBook"))
+const EditBook = lazy(() => import("./pages/editBook"))
+const NotFound = lazy(() => import("./pages/NotFound"))
 
-import EmployeeDashboard from "./pages/employe/EmployeeDashboard"
-import EmployeePresence from "./pages/employe/EmployeePresence"
-import EmployeeLoan from "./pages/employe/EmployeeLoan"
+const Admin = lazy(() => import("./pages/admin"))
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"))
+const AdminBooks = lazy(() => import("./pages/admin/AdminBooks"))
+const AdminLoans = lazy(() => import("./pages/admin/AdminLoans"))
+const AdminPresence = lazy(() => import("./pages/admin/AdminPresence"))
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"))
+const AdminAudit = lazy(() => import("./pages/admin/AdminAudit"))
+const AdminImport = lazy(() => import("./pages/admin/AdminImport"))
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"))
 
-import AddBook from "./pages/addBook"
-import EditBook from "./pages/editBook"
-import Activity from "./pages/activity"
-import QrPage from "./pages/QrPage"
-import ForgotPassword from "./pages/ForgotPassword"
-import ResetPassword from "./pages/ResetPassword"
-import AdminSettings from "./pages/admin/AdminSettings"
-import AdminAudit from "./pages/admin/AdminAudit"
-import AdminImport from "./pages/admin/AdminImport"
-import AdminCategories from "./pages/admin/AdminCategories"
-import NotFound from "./pages/NotFound"
+const EmployeeDashboard = lazy(() => import("./pages/employe/EmployeeDashboard"))
+const EmployeePresence = lazy(() => import("./pages/employe/EmployeePresence"))
+const EmployeeLoan = lazy(() => import("./pages/employe/EmployeeLoan"))
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -44,6 +47,12 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+    <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--muted)", borderTopColor: "transparent" }} />
+  </div>
+)
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -53,6 +62,7 @@ createRoot(document.getElementById("root")).render(
       <Toaster position="top-center" reverseOrder={false} />
       <OfflineBanner />
       <BottomNav />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
@@ -91,6 +101,7 @@ createRoot(document.getElementById("root")).render(
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </UserProvider>
     </ThemeProvider>
   </BrowserRouter>

@@ -40,7 +40,7 @@ function StarRating({ rating = 0, interactive = false, onRate }) {
 const resolvePdfUrl = (pdfFile) => {
   if (!pdfFile) return ""
   if (/^https?:\/\//i.test(pdfFile)) return pdfFile
-  return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}${pdfFile}`
+  return `${(import.meta.env.VITE_API_URL || "").replace(/\/+$/, '')}${pdfFile}`
 }
 
 const CONDITION_LABEL = { neuf: "Neuf", bon: "Bon état", usé: "Usé", endommagé: "Endommagé" }
@@ -383,7 +383,7 @@ export default function BookPage() {
                   <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Découvrir</p>
                   <h2 className="text-2xl font-black text-primary">Dans la même catégorie</h2>
                 </div>
-                <button onClick={() => navigate(`/category/${encodeURIComponent(book.category.toLowerCase())}`)} className="flex items-center gap-1 text-secondary font-semibold text-sm">
+                <button onClick={() => navigate(`/category/${encodeURIComponent((book.category || "").toLowerCase())}`)} className="flex items-center gap-1 text-secondary font-semibold text-sm">
                   Voir tout <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -391,7 +391,7 @@ export default function BookPage() {
                 {related.map(b => (
                   <div key={b._id} onClick={() => navigate(`/book/${b._id}`)} className="shrink-0 w-28 cursor-pointer group">
                     <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-all">
-                      <img src={b.cover} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={b.cover} alt={b.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
                     <p className="mt-2 text-xs font-semibold truncate" style={{ color: "var(--fg)" }}>{b.title}</p>
                     <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{Array.isArray(b.author) ? b.author[0] : b.author}</p>

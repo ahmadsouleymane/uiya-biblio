@@ -24,7 +24,7 @@ export default function AdminCategories() {
   useEffect(() => { load().finally(() => setLoading(false)) }, [])
 
   const filtered = categories.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    (c.name || "").toLowerCase().includes(search.toLowerCase())
   )
 
   const handleAdd = async () => {

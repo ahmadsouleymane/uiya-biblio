@@ -323,7 +323,7 @@ export default function Admin() {
                           #{i + 1}
                         </span>
                         {book.cover && (
-                          <img src={book.cover} alt={book.title} className="w-8 h-11 object-cover rounded-lg shrink-0 shadow-sm" />
+                          <img src={book.cover} alt={book.title} loading="lazy" className="w-8 h-11 object-cover rounded-lg shrink-0 shadow-sm" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-primary truncate">{book.title}</p>
@@ -332,7 +332,7 @@ export default function Admin() {
                               <div
                                 className="h-full rounded-full"
                                 style={{
-                                  width: `${Math.round((book.count / stats.topBooks[0].count) * 100)}%`,
+                                  width: `${Math.round((book.count / (stats.topBooks[0].count || 1)) * 100)}%`,
                                   background: i === 0 ? chartColor : `${chartAlpha}${0.5 - i * 0.07})`,
                                 }}
                               />

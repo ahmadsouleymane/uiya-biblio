@@ -35,6 +35,7 @@ export const cancelReservation = async (req, res) => {
     await reservation.save();
     res.status(200).json({ message: "Réservation annulée" });
   } catch (e) {
+    console.error("[reservation] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -46,6 +47,7 @@ export const getMyReservations = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(reservations);
   } catch (e) {
+    console.error("[reservation] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -57,6 +59,7 @@ export const getBookQueue = async (req, res) => {
       .sort({ createdAt: 1 });
     res.status(200).json(reservations);
   } catch (e) {
+    console.error("[reservation] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -73,6 +76,7 @@ export const getAllReservations = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(reservations);
   } catch (e) {
+    console.error("[reservation] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

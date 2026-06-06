@@ -22,10 +22,32 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [page, setPage]     = useState(1)
+  const [total, setTotal]   = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
 
-  const load = () => getAllUsers().then(u => setUsers(Array.isArray(u) ? u : []))
-  useEffect(() => { load().finally(() => setLoading(false)) }, [])
-  useEffect(() => { setPage(1) }, [search])
+  const load = (p = 1, q = "") => {
+    const params = { page: p, limit: PAGE_SIZE }
+    if (q) params.search = q
+    return getAllUsers(params).then(data => {
+      const list = Array.isArray(data) ? data : (data?.users || [])
+      setUsers(list)
+      setTotal(data?.total ?? list.length)
+      setTotalPages(data?.pages ?? 1)
+    })
+  }
+
+  useEffect(() => { load(1).finally(() => setLoading(false)) }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => { setPage(1); load(1, search) }, 350)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    if (page === 1) return
+    load(page, search)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   const handleDelete = async (id) => {
     const user = users.find(u => u._id === id)
@@ -58,14 +80,8 @@ export default function AdminUsers() {
     }
   }
 
-  const filtered = users.filter(u =>
-    u.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase()) ||
-    u.phone?.includes(search)
-  )
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const filtered = users
+  const paginated = users
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
@@ -78,10 +94,14 @@ export default function AdminUsers() {
             <h1 className="text-xl md:text-3xl font-black text-primary">Utilisateurs</h1>
           </div>
           <div className="flex items-center gap-2 mt-1 shrink-0">
-            <span className="badge badge-primary hidden sm:inline-flex">{users.length} comptes</span>
+            <span className="badge badge-primary hidden sm:inline-flex">{total} comptes</span>
             <button
               onClick={async () => {
-                const withQR = users.filter(u => u.qrCode)
+                toast.loading("Récupération des utilisateurs…", { id: "dl-all" })
+                const all = await getAllUsers().catch(() => [])
+                const list = Array.isArray(all) ? all : (all?.users || [])
+                const withQR = list.filter(u => u.qrCode)
+                toast.dismiss("dl-all")
                 if (withQR.length === 0) { toast.error("Aucun QR code disponible"); return }
                 toast.success(`Génération de ${withQR.length} cartes…`)
                 await downloadAllCards(withQR)
@@ -167,7 +187,7 @@ export default function AdminUsers() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs" style={{ color: "var(--muted)" }}>
-                  Page {page} / {totalPages} · {filtered.length} utilisateur{filtered.length > 1 ? "s" : ""}
+                  Page {page} / {totalPages} · {total} utilisateur{total > 1 ? "s" : ""}
                 </p>
                 <div className="flex gap-2">
                   <button

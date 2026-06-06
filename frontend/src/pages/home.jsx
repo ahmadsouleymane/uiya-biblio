@@ -74,6 +74,7 @@ function BookCard({ book, onClick }) {
         <img
           src={book.cover}
           alt={book.title}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </div>
@@ -112,8 +113,11 @@ export default function Home() {
   });
 
   useEffect(() => {
-    getBooks()
-      .then(data => setBooks(Array.isArray(data) ? data : []))
+    getBooks({ page: 1, limit: 12 })
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data?.books || []);
+        setBooks(list);
+      })
       .finally(() => setLoadingBooks(false));
     getBookStats()
       .then(data => setStats(data))
@@ -652,6 +656,7 @@ export default function Home() {
                       <img
                         src={book.cover}
                         alt={book.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>

@@ -156,14 +156,16 @@ export const getBooks = async (req, res) => {
       const total = await Book.countDocuments(filter);
       const books = await Book.find(filter)
         .sort(sortOrder)
+        .allowDiskUse(true)
         .skip((pageNum - 1) * limitNum)
         .limit(limitNum);
       return res.status(200).json({ books, total, page: pageNum, pages: Math.ceil(total / limitNum) });
     }
 
-    const books = await Book.find(filter).sort(sortOrder);
+    const books = await Book.find(filter).sort(sortOrder).allowDiskUse(true);
     res.status(200).json(books);
   } catch (e) {
+    console.error("getBooks error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -181,6 +183,7 @@ export const getStats = async (req, res) => {
       availableBooks: available[0]?.total || 0,
     });
   } catch (e) {
+    console.error("[book] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -191,6 +194,7 @@ export const getBookById = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     res.status(200).json(book);
   } catch (e) {
+    console.error("[book] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -201,6 +205,7 @@ export const getBookByIsbn = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     res.status(200).json(book);
   } catch (e) {
+    console.error("[book] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -230,6 +235,7 @@ export const updateBook = async (req, res) => {
     if (!book) return res.status(404).json({ message: "Livre introuvable" });
     res.status(200).json(book);
   } catch (e) {
+    console.error("[book] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -249,6 +255,7 @@ export const deleteBook = async (req, res) => {
 
     res.status(200).json({ message: "Livre supprimé" });
   } catch (e) {
+    console.error("[book] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

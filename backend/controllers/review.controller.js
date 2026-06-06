@@ -31,6 +31,7 @@ export const getBookReviews = async (req, res) => {
 
     res.status(200).json({ reviews, average: avg, total: reviews.length });
   } catch (e) {
+    console.error("[review] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -46,6 +47,7 @@ export const deleteReview = async (req, res) => {
     await review.deleteOne();
     res.status(200).json({ message: "Avis supprimé" });
   } catch (e) {
+    console.error("[review] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

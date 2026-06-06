@@ -130,6 +130,7 @@ export const renewLoan = async (req, res) => {
     await loan.populate(["user", "book"]);
     res.status(200).json(loan);
   } catch (e) {
+    console.error("[loan] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -156,6 +157,7 @@ export const getUserLoans = async (req, res) => {
     loans = await markLateLoans(loans, settings.loanDurationDays);
     res.status(200).json(loans);
   } catch (e) {
+    console.error("[loan] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -226,6 +228,7 @@ export const getAllLoans = async (req, res) => {
 
     res.status(200).json(loans);
   } catch (e) {
+    console.error("[loan] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -258,6 +261,7 @@ export const getEmployeeDashboardStats = async (req, res) => {
       pendingReservations: 0,
     });
   } catch (e) {
+    console.error("[loan] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

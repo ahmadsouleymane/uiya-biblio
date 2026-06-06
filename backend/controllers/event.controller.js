@@ -8,6 +8,7 @@ export const getEvents = async (req, res) => {
       .select("-registrations")
     return res.status(200).json(events)
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }
@@ -22,6 +23,7 @@ export const registerForEvent = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
     return res.status(200).json({ message: "Inscription confirmée", count: event.registrations.length })
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }
@@ -36,6 +38,7 @@ export const unregisterFromEvent = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
     return res.status(200).json({ message: "Désinscription effectuée", count: event.registrations.length })
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }
@@ -47,6 +50,7 @@ export const getRegistrations = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
     return res.status(200).json(event.registrations)
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }
@@ -71,6 +75,7 @@ export const addEvent = async (req, res) => {
     })
     return res.status(201).json({ message: "Activité ajoutée", event })
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }
@@ -81,6 +86,7 @@ export const deleteEvent = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Activité introuvable" })
     return res.status(200).json({ message: "Activité supprimée" })
   } catch (err) {
+    console.error("[event] error:", err);
     return res.status(500).json({ message: "Erreur serveur" })
   }
 }

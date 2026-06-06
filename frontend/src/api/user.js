@@ -26,8 +26,10 @@ export const updateMe = (data) =>
 export const getUserById = (id) =>
   apiFetch(`${API}/by-id/${id}`, { ...opts, method: "GET" }).then(r => r.json())
 
-export const getAllUsers = () =>
-  apiFetch(`${API}/`, { ...opts, method: "GET" }).then(r => r.json())
+export const getAllUsers = (params = {}) => {
+  const query = new URLSearchParams(params).toString()
+  return apiFetch(`${API}/${query ? "?" + query : ""}`, { ...opts, method: "GET" }).then(r => r.json())
+}
 
 export const updateUserRole = (id, role) =>
   apiFetch(`${API}/${id}/role`, { ...opts, method: "PUT", body: JSON.stringify({ role }) }).then(r => r.json())

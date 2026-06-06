@@ -52,6 +52,10 @@ export default function Category() {
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 24;
 
   const isTous = !name || name === "tous";
   const heroCover = categoryCovers[name?.toLowerCase()] || phi;
@@ -61,9 +65,8 @@ export default function Category() {
     return () => clearTimeout(t);
   }, [filters]);
 
-  useEffect(() => {
-    setLoading(true);
-    const params = {};
+  const buildParams = (p) => {
+    const params = { page: p, limit: PAGE_SIZE };
     if (!isTous) params.category = name;
     if (debouncedFilters.search?.trim()) params.search = debouncedFilters.search.trim();
     if (debouncedFilters.author?.trim()) params.author = debouncedFilters.author.trim();
@@ -73,11 +76,36 @@ export default function Category() {
     if (debouncedFilters.condition) params.condition = debouncedFilters.condition;
     if (debouncedFilters.available) params.available = "true";
     if (debouncedFilters.sortBy) params.sortBy = debouncedFilters.sortBy;
-    getBooks(params)
-      .then(data => setBooks(Array.isArray(data) ? data : []))
-      .catch(() => setBooks([]))
+    return params;
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setPage(1);
+    getBooks(buildParams(1))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data?.books || []);
+        setBooks(list);
+        setTotal(data?.total ?? list.length);
+      })
+      .catch(() => { setBooks([]); setTotal(0); })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, debouncedFilters]);
+
+  const loadMore = () => {
+    if (loadingMore || books.length >= total) return;
+    const next = page + 1;
+    setLoadingMore(true);
+    getBooks(buildParams(next))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data?.books || []);
+        setBooks(prev => [...prev, ...list]);
+        setPage(next);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  };
 
   const filtered = books;
 
@@ -116,7 +144,7 @@ export default function Category() {
               className="shrink-0 text-xs font-bold px-3 py-1 rounded-full"
               style={{ background: "rgba(167,30,60,0.7)", color: "#fff" }}
             >
-              {loading ? "…" : `${filtered.length} livre${filtered.length > 1 ? "s" : ""}`}
+              {loading ? "…" : `${total} livre${total > 1 ? "s" : ""}`}
             </span>
           </div>
 
@@ -195,6 +223,19 @@ export default function Category() {
                 </p>
               </div>
             ))}
+          </div>
+        )}
+
+        {!loading && books.length > 0 && books.length < total && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+              style={{ background: dark ? "#d42040" : "#040848", color: "#fff" }}
+            >
+              {loadingMore ? "Chargement…" : `Charger plus (${books.length}/${total})`}
+            </button>
           </div>
         )}
       </div>

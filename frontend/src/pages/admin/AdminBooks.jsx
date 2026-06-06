@@ -15,14 +15,35 @@ export default function AdminBooks() {
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [page, setPage]     = useState(1)
+  const [total, setTotal]   = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
 
-  const load = (q = "") => getBooks(q ? { search: q } : {}).then(b => setBooks(Array.isArray(b) ? b : []))
-  useEffect(() => { load().finally(() => setLoading(false)) }, [])
+  const load = (p = 1, q = "") => {
+    const params = { page: p, limit: PAGE_SIZE }
+    if (q) params.search = q
+    return getBooks(params).then(data => {
+      const list = Array.isArray(data) ? data : (data?.books || [])
+      setBooks(list)
+      setTotal(data?.total ?? list.length)
+      setTotalPages(data?.pages ?? 1)
+    })
+  }
+
+  useEffect(() => { load(1).finally(() => setLoading(false)) }, [])
+
   useEffect(() => {
-    setPage(1)
-    const t = setTimeout(() => load(search), 350)
+    const t = setTimeout(() => {
+      setPage(1)
+      load(1, search)
+    }, 350)
     return () => clearTimeout(t)
   }, [search])
+
+  useEffect(() => {
+    if (page === 1) return
+    load(page, search)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   const handleDelete = async (id, title) => {
     if (!window.confirm(`Supprimer "${title || "ce livre"}" ?`)) return
@@ -39,8 +60,7 @@ export default function AdminBooks() {
     }
   }
 
-  const totalPages = Math.ceil(books.length / PAGE_SIZE)
-  const paginated  = books.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const paginated = books
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
@@ -53,7 +73,7 @@ export default function AdminBooks() {
             <h1 className="text-xl md:text-3xl font-black text-primary">Livres</h1>
           </div>
           <div className="flex items-center gap-2 mt-1 shrink-0">
-            <span className="badge badge-primary hidden sm:inline-flex">{books.length} titres</span>
+            <span className="badge badge-primary hidden sm:inline-flex">{total} titres</span>
             <button onClick={() => navigate("/admin/import")} className="btn btn-ghost flex items-center gap-1 text-sm px-3 hidden sm:flex">
               <Upload className="w-4 h-4" /> Import CSV
             </button>
@@ -89,7 +109,7 @@ export default function AdminBooks() {
                 <div key={book._id} className="group relative cursor-pointer" onClick={() => navigate(`/book/${book._id}`)}>
                   <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
                     {book.cover ? (
-                      <img src={book.cover} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={book.cover} alt={book.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ background: "#e2e8f0" }}>
                         <BookOpen className="w-8 h-8" style={{ color: "var(--muted)" }} />
@@ -155,7 +175,7 @@ export default function AdminBooks() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs" style={{ color: "var(--muted)" }}>
-                  Page {page} / {totalPages} · {books.length} livre{books.length > 1 ? "s" : ""}
+                  Page {page} / {totalPages} · {total} livre{total > 1 ? "s" : ""}
                 </p>
                 <div className="flex gap-2">
                   <button

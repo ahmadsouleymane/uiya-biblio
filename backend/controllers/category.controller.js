@@ -6,6 +6,7 @@ export const getCategories = async (req, res) => {
     const categories = await Category.find().sort({ name: 1 });
     res.status(200).json(categories);
   } catch (e) {
+    console.error("[category] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -21,6 +22,7 @@ export const addCategory = async (req, res) => {
     const category = await Category.create({ name: name.trim() });
     res.status(201).json(category);
   } catch (e) {
+    console.error("[category] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -44,6 +46,7 @@ export const updateCategory = async (req, res) => {
 
     res.status(200).json(old);
   } catch (e) {
+    console.error("[category] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -61,6 +64,7 @@ export const deleteCategory = async (req, res) => {
     await Category.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Catégorie supprimée" });
   } catch (e) {
+    console.error("[category] error:", e);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
