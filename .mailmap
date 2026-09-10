@@ -1,0 +1,3 @@
+# Fait apparaître le vrai nom de l'auteur dans `git log` / `git shortlog`,
+# à la place du pseudonyme utilisé lors des commits.
+Ahmad Souleymane <ahmadsouleymane1302@gmail.com> devwithjustmaley <ahmadsouleymane1302@gmail.com>
